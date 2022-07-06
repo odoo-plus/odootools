@@ -1,12 +1,19 @@
-Odoo Tools
-==========
+# Odoo Tools
 
 [![codecov](https://codecov.io/gh/llacroix/odoo-tools/branch/main/graph/badge.svg?token=MdWK5ZC2ab)](https://codecov.io/gh/llacroix/odoo-tools)
+
 
 A library that provide command line tools to manage an Odoo
 environment. The main purpose of the library is to provide
 a programmatic API that lets you build tools to automate
 management of odoo environment.
+
+## How to install
+
+    pip install odoo-tools
+
+
+## Example of use
 
 It can be used to find modules in addons paths. It can be
 used to discover addons paths in directory in a way to provide
