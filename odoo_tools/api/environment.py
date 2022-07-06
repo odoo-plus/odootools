@@ -340,6 +340,48 @@ class Environment(object):
         return data
 
     def package_map(self):
+        """
+        Returns a package map.
+
+        The package map is used to map some module name
+        to python package names.
+
+        By default, in newer versions of odoo, it will check
+        for the package name. But unfortunately some modules
+        will still have the module name defined in their
+        python external dependencies.
+
+        When requirements are built from the odoo modules available
+        in the odoo environment. It will wrongly attempt to install
+        let say the module "ldap". ldap is the name of the module
+        that can be imported, but the package that needs to be
+        installed is python-ldap.
+
+        Such map could look like this:
+
+        .. code-block:: python
+
+            {'ldap': 'python-ldap'}
+
+        Then when the packages required are found, they can be mapped
+        to those package names to find the exact python package name.
+
+        Mapping a name to an empty string would remove the name from
+        the requirements. This can be useful to remove package defined
+        in the external dependencies that aren't actual packages but
+        builtin dependencies that would be already part of python
+        itself.
+
+        .. code-block:: python
+
+            {'asyncio': ''}
+
+        The behaviour could be also useful when you want to install an
+        alternative to let say the barcode module.
+
+        Returns:
+            dict: Key, Value of mapped module/package name.
+        """
         base_map = self._default_package_map()
 
         package_map_file = self.context.package_map_file
@@ -364,15 +406,14 @@ class Environment(object):
 
     def odoo_version(self):
         """
-        Return the odoo version
-        =======================
+        Returns the odoo version.
 
         In case odoo isn't installed, it will fallback to the
         context variable `odoo_version` which can be set through
         environment variable ODOO_VERSION.
 
         Returns:
-        int: The major version number
+            int|None: The major version number or None
         """
         try:
             from odoo.release import version_info
