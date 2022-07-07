@@ -68,3 +68,6 @@ html_sidebars = {
         "sidebar/scroll-end.html",
     ]
 }
+
+
+napoleon_google_docstring = True

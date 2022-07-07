@@ -43,26 +43,27 @@ def get_translation_filename(language, module):
     For example, exporting the pot file for module bus would be
     exported by calling:
 
-    ..code:: python
+    .. code-block:: python
 
-    get_translation_filename(None, 'bus')
-    >> 'bus.pot'
+        get_translation_filename(None, 'bus')
+        >> 'bus.pot'
 
     When exporting the translation file for fr_FR language for
     the module bus. It will return the family of the language
     as the langage and dialect are the same.
 
-    ..code:: python
+    .. code-block:: python
 
-    get_translation_filename('fr_FR', 'bus')
-    >> 'fr.po'
+        get_translation_filename('fr_FR', 'bus')
+        >> 'fr.po'
 
     If the language and dialect are different it returns the language
     locale as is.
 
-    ..code:: python
-    get_translation_filename('fr_CA', 'bus')
-    >> 'fr_CA.po'
+    .. code-block:: python
+
+        get_translation_filename('fr_CA', 'bus')
+        >> 'fr_CA.po'
 
     Args:
 
@@ -185,6 +186,24 @@ class Manifest(object):
         return self._attrs
 
     def set_attribute(self, attribute, value):
+        """
+        Set attribute to a value.
+
+        This is a shortcut method to set attributes in a nested dict.
+
+        .. code-block:: python
+
+            manifest.set_attribute(
+                ['external_dependencies', 'python'], ['request']
+            )
+            assert manifest.external_dependencies['python'] == ['request']
+
+        Args:
+            attribute (list(str)): List of attribute key to set
+
+            value (any): Value to set to the attribute path
+
+        """
         if len(attribute) == 0:
             raise ArgumentError(
                 'The attribute must have at least one attribute name.'
@@ -201,6 +220,21 @@ class Manifest(object):
             cur_vals[last_attribute] = value
 
     def static_assets(self):
+        """
+        Returns static asset files.
+
+        This lookup all files in the static folder of the current
+        module/manifest. It will return all files without exceptions.
+
+        This can be mainly used to lookup for static assets of specific
+        modules. For example, you'd want to upload all static assets
+        somewhere else or you'd want to preprocess static assets before
+        deployment.
+
+        Returns:
+
+            list(Path): A list of files static subdirectory
+        """
         addons_path = self.path.parent
 
         def recurse_search(cur_dir):
@@ -297,6 +331,12 @@ class Manifest(object):
         return man
 
     def save(self):
+        """
+        Saves changes made to the manifest in python.
+
+        All changes will be dumped into the original manifest
+        file or in __manifest__.py.
+        """
         obj = {}
         for key, value in self._attrs.items():
             if key in ['description_html', 'technical_name']:
@@ -332,16 +372,34 @@ class Manifest(object):
         return packages
 
     def disable(self):
+        """
+        Set the manifest as uninstallable.
+        """
         self.installable = False
 
     def remove(self):
         """
-        Remove the module from the file system
+        Remove the module from the file system.
+
+        It will attempt to remove the folder in which the
+        manifest is located.
+
+        If the directory doesn't exist, it does nothing.
+        If the directory does exist. It will try to remove
+        all files located in the module folder recursively.
         """
         if self.path.exists():
             shutil.rmtree(self.path, ignore_errors=True)
 
     def files(self):
+        """
+        Yields all file located in the module's folder.
+
+        Iterating over this iterator yields all file in the module's
+        folder except pyc files or potentially other files that aren't
+        considered as "sources". It will also yield files located in
+        the static folder.
+        """
         for file in self.path.glob('**/*'):
             if file.is_dir():
                 continue
@@ -351,6 +409,18 @@ class Manifest(object):
             yield file
 
     def package(self):
+        """
+        Returns a file handle to a zipfile of the packaged module.
+
+        This methods will generate a zip file based on the result of
+        a call to `self.files()`.
+
+        The zipfile will get destroyed once it is closed or garbage
+        collected.
+
+        Returns:
+            File: A file handle containing the zipped module.
+        """
         outfile = tempfile.NamedTemporaryFile()
 
         root_folder = self.path.parent
@@ -366,6 +436,20 @@ class Manifest(object):
         return outfile
 
     def export_translations(self, db, languages):
+        """
+        Exports translation in the corresponding module's path.
+
+        It will store all potential translations into the i18n folder
+        of the corresponding module.
+
+        Args:
+            db (DbApi): the api used to access the database.
+
+            languages (list(str)): list of locales to export.
+
+        Returns:
+            Nothing
+        """
 
         translations = db.export_translation_terms(
             languages,

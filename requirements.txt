@@ -2,4 +2,12 @@ giturlparse
 toposort
 toml
 requests
-pathlib2; python_version < '3.0'
+packaging
+lxml
+docutils
+polib
+six>=1.12.0
+cryptography
+click
+passlib
+ptpython

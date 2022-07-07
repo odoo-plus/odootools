@@ -12,4 +12,3 @@ Modules
    modules/search
    modules/render
    modules/translate
-   modules/configure
