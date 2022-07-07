@@ -1,5 +1,6 @@
 # Odoo Tools
 
+[![Python package](https://github.com/llacroix/odoo-tools/actions/workflows/python-package.yml/badge.svg)](https://github.com/llacroix/odoo-tools/actions/workflows/python-package.yml)
 [![codecov](https://codecov.io/gh/llacroix/odoo-tools/branch/main/graph/badge.svg?token=MdWK5ZC2ab)](https://codecov.io/gh/llacroix/odoo-tools)
 
 
