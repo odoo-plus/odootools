@@ -1,7 +1,6 @@
 Command line utilities
 ======================
 
-.. toctree::
-   :maxdepth: 1
-
-   commands/click
+.. click:: odoo_tools.cli.odot:command
+   :prog: odootools
+   :nested: full

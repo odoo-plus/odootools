@@ -8,12 +8,11 @@ Odoo Tools
 .. toctree::
    :maxdepth: 2
 
-   self
    pages/commands
    pages/api
-   pages/environment
    pages/environment_variables
    pages/modules
+   pages/services
    pages/compat
 
 

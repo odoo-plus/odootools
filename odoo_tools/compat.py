@@ -2,13 +2,18 @@
 Compatibility
 =============
 
-As odoo-tools attempt to support odoo versions from Odoo 8 to latest.
-This modules require some compatibility between python2.7 and python3.
+This module provides a common interface for functions that have
+incompatibilities between python versions. This is an internal
+module and you shouldn't import things here in your project as
+they may be subject to change or disapear without notice.
 
-It's possible that support for versions of Odoo using python2 will be
-dropped in later version of odoo-tools. Then, this module will cease
-to exist as it won't be required to handle differences between python2
-and python3.
+.. note::
+    This module is deprecated and will be refactored. Initially, its
+    purpose was to provide a common interface for some libraries that
+    had different interfaces between python2 and python3. As of now,
+    odoo-tools doesn't attempt to work on python2 anymore.
+
+
 """
 import sys
 import signal
