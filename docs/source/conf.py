@@ -72,3 +72,12 @@ html_sidebars = {
 
 
 napoleon_google_docstring = True
+
+rst_prolog = """
+.. role:: bash(code)
+    :language: bash
+
+.. role:: python(code)
+    :language: python
+    :class: highlight
+"""
