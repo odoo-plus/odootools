@@ -8,6 +8,7 @@ Odoo Tools
 .. toctree::
    :maxdepth: 2
 
+   guides
    pages/commands
    pages/api
    pages/environment_variables
