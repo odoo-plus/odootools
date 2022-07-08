@@ -27,34 +27,58 @@ class KeyValue(models.Extendable, models.ParentedObject, models.BaseModel):
 
 class RepoConfig(models.ParentedObject, models.Extendable, models.BaseModel):
 
+    #: (str): Url of the repository. The url can point
+    #: to a repository using the ssh format or https format.
     url = fields.Url(
         "Url of repository",
         availability=Version(since=1),
         default=None,
     )
 
+    #: (str): the commit id to use
     commit = fields.String(
         "Commit of the object",
         availability=Version(since=1),
         default=None,
     )
 
+    #: (str): the branch name to use
     branch = fields.String(
         "Branch of the object",
         availability=Version(since=1),
         default=None,
     )
 
+    #: A private key if provided, the private key can
+    #: be raw or it can be encrypted using Fernet encryption.
     private_key = fields.String(
         default=None,
     )
 
+    #: Tell if the repo require authentication. In some cases,
+    #: you could have https repositories that require extra
+    #: credentials. If auth is False, then the url will not
+    #: get altered to use credentials like access token provided
+    #: in a credentials store.
     auth = fields.Boolean(
         default=None
     )
 
     @property
     def ref(self):
+        """
+        Returns the proper ref to use.
+
+        By default it will try to use the following values in that
+        order:
+
+        - commit
+        - branch
+        - resolved odoo version or None
+
+        Returns:
+            str | None: the default ref to use.
+        """
         service = self.get_parent(ServiceManifest)
 
         if (
@@ -70,6 +94,22 @@ class RepoConfig(models.ParentedObject, models.Extendable, models.BaseModel):
 
     @property
     def repo_path(self):
+        """
+        Converts the url of the repo in a unique path.
+
+        The main reason is to provide a path that can be used as
+        a unique identifier for the repositories. When inheriting
+        services from an other manifests, all projects related to
+        the same url will be inherited accordingly.
+
+        When fetching repositories, it ensure that a project a/web
+        and b/web will not be fetched into a web folder. Or to some
+        extent, a github.com/a/web and gitlab.com/a/web are still
+        considered as two different projects.
+
+        Returns:
+            str: the path of the repo
+        """
         url = giturlparse.parse(self.url.lower())
 
         if url.valid:
@@ -163,67 +203,57 @@ class ServiceManifest(
     models.BaseModel
 ):
     """
-    ServiceManifest
-    ===============
-
     This object represent all properties that can be set
     on a manifest for odoo services.
-
-    Properties:
-
-    name (String): A string representing the name of the
-        service configuration. For example, you may want to define
-        a service staging and production with different settings.
-
-    inherit (ServiceManifest): A reference to an other service manifest.
-        It's possible to reference manifests by name. In that case, a service
-        will be able to merge its own properties with a parent manifest
-        configuration.
-
-        For example, you may want to have a production server using the
-        production branch of certain repositories. While a staging environment
-        tracking the staging branch. To make things simpler, you could have all
-        addons defined in the staging environment. But you could also define
-        custom branches for production and keep the rest as the staging
-        environment is using.
-
-    odoo (OdooConfig): A field referencing an odoo configuration.
-
-    addons (List<RepoConfig>): A list of repository configuration.
-
-    labels (KeyValue): A key value store of labels.
-
-    env (KeyValue): A key value store of environment variables.
     """
+
+    #: (String): A string representing the name of the
+    #: service configuration. For example, you may want to define
+    #: a service staging and production with different settings.
     name = fields.String(
         "name",
         availability=Version(since="1")
     )
 
+    #: (ServiceManifest): A reference to an other service manifest.
+    #: It's possible to reference manifests by name. In that case, a
+    #: service will be able to merge its own properties with a parent
+    #: manifest configuration.
+    #:
+    #: For example, you may want to have a production server using the
+    #: production branch of certain repositories. While a staging
+    #: environment tracking the staging branch. To make things simpler,
+    #: you could have all addons defined in the staging environment. But
+    #: you could also define custom branches for production and keep the
+    #: rest as the staging environment is using.
     inherit = fields.ProxyObject(
         "Reference to parent manifest",
         getter="get_inherited_object",
         availability=Version(since="1")
     )
 
+    #: (OdooConfig): A field referencing an odoo configuration.
     odoo = fields.Object(
         "Odoo Configuration",
         object_class=OdooConfig,
         availability=Version(since="1")
     )
 
+    #: (List<RepoConfig>): A list of repository configuration.
     addons = fields.Dict(
         "List of addons",
         object_class=RepoConfig,
         key="repo_path",
     )
 
+    #: (KeyValue): A key value store of labels.
     labels = fields.Object(
         "Odoo Custom Options",
         object_class=KeyValue,
         availability=Version(since=1)
     )
 
+    #: (KeyValue): A key value store of environment variables.
     env = fields.Object(
         "Odoo Custom Options",
         object_class=KeyValue,
@@ -231,6 +261,10 @@ class ServiceManifest(
     )
 
     def get_inherited_object(self, key):
+        """
+        Returns:
+            ServiceManifest: Related service manifest given by its name.
+        """
         parent = self.get_parent(ServiceManifests)
         return parent.services[key]
 
@@ -271,9 +305,32 @@ class ServiceManifest(
 
     @property
     def resolved(self):
+        """
+        This service manifest with all of its
+        properties resolved against the inherit property.
+
+        For example, if you had a service that inherits from an
+        other one and each of them had different addons configured.
+        It would let you combine all configurations together.
+
+        The value of this property would be a new ServiceManifest
+        that has all addons of self and of inherit (recursively).
+
+        Returns:
+            ServiceManifest: ServiceManifest that is an extension of inherit
+        """
         return self.extend(self.inherit)
 
     def extend(self, other):
+        """
+        Creates a new ServiceManifest that extend the other one.
+
+        Args:
+            other (ServiceManifest): The other manifest to inherit from.
+
+        Returns:
+            (ServiceManifest): A new ServiceManifest
+        """
         if not other:
             return self
 
@@ -285,8 +342,13 @@ class ServiceManifest(
             "env": self.resolved_prop('env'),
         })
 
-    # To dict should be guessable from properties defined on class
     def to_dict(self):
+        """
+        Returns a dict representing the data in this object.
+
+        Returns:
+            dict: Dict containing all properties of this object.
+        """
         inherit = (
             self._data['inherit']['ref']
             if 'inherit' in self._data
@@ -315,6 +377,7 @@ class ServiceManifest(
 
 
 class ServiceManifests(models.BaseModel):
+    #: (dict): Dictionary of service manifest by their name
     services = fields.Dict(
         "List of services",
         object_class=ServiceManifest,
@@ -322,6 +385,12 @@ class ServiceManifests(models.BaseModel):
     )
 
     def to_dict(self):
+        """
+        Returns a dict representing the data in this object.
+
+        Returns:
+            dict: Dict containing all properties of this object.
+        """
         return {
             "services": {
                 key: val.to_dict()

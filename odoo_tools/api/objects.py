@@ -15,15 +15,71 @@ _logger = logging.getLogger(__name__)
 
 
 class CompanySpec(object):
+    """
+    This class represent a company object.
+
+    This object can be used along database initialization.
+    When creating a new database, it is possible to configure the
+    main company before installing more modules. One example where
+    the company is particularly important is when you attempt to
+    install the account module.
+
+    Without a valid company, Odoo will try to install a default
+    l10n module for accounting for a locale that you would likely
+    not use.
+
+    When a company object is provided to the database initialization,
+    it will start by initializing the database with the base module.
+
+    Then when the base module is installed, it will update some objects
+    like the `res.company` and then it will install other modules that
+    were requested to be installed for the database initialization.
+
+    Attributes:
+        country_code (str): Country code based on the Alpha-2 of the
+            `ISO 3166-1 <ISO>`_ code.
+    .. _ISO: https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes
+    """
     def __init__(self, country_code):
         self.country_code = country_code
 
 
 def try_parse_manifest(data):
+    """
+    Attempt parsing a manifest.
+
+    It used the literal_eval native function to attempt parsing
+    a manifest.
+
+    Args:
+        data (str): Content of the manifest to load
+
+    Returns:
+        dict: The parsed data of the manifest.
+    """
     return literal_eval(data)
 
 
 def try_compile_manifest(data):
+    """
+    Attempt compiling the manifest.
+
+    In some specific cases, if the literal eval doesn't work. It can
+    provide more information to compile the manifest and evaluate its
+    content.
+
+    As manifest file are python modules, it is technically possible
+    to import or use python code directly within the manifest file.
+
+    In that case a simple literal_eval wouldn't be enough. That said,
+    this evaluator should never be used.
+
+    Args:
+        data (str): Content of the manifest to load
+
+    Returns:
+        dict: The parsed data of the manifest.
+    """
     code = compile(
         data,
         '__manifest__.py',
@@ -66,13 +122,11 @@ def get_translation_filename(language, module):
         >> 'fr_CA.po'
 
     Args:
-
         language (str|None): locale to export
 
         module (str): Name of the module to export
 
     Returns:
-
         str: The filename of the translation file based
             on the arguments.
     """
@@ -94,7 +148,25 @@ class Manifest(object):
     Manifest Object
 
     The manifest object contains data stored in odoo/openerp manifests.
-    """
+
+    Attributes:
+        _attrs (dict): Data of the manifest file. You can see the whole set
+            of attributes in the `odoo documentation <odoo>`_.
+
+        path (Path): The path in which the manifest got loaded.
+
+        _manifest_file: The path of the manifest file of this manifest
+            if it was loaded from a path. If the path of the manifest
+            wasn't provided, it defaults to the filename `__manifest__.py`
+            in the path of the module.
+
+        technical_name: This attribute is stored into the _attrs but is defined
+            as the module name. The name attribute in a manifest is just a name
+            that will then get loaded in odoo. The technical name is the unique
+            identifier for the module path in the addons paths.
+
+    .. _odoo: https://www.odoo.com/documentation/master/developer/reference/backend/module.html
+    """  # noqa
 
     properties = {
         "_attrs",
@@ -105,17 +177,23 @@ class Manifest(object):
     defaults = {
         "installable": True,
         "application": False,
-        "depends": [],
-        "demo": [],
-        "data": [],
+        "depends": list,
+        "demo": list,
+        "data": list,
         "version": "0.0.0",
         "external_dependencies": dict
     }
 
     def __init__(self, path, attrs=None, manifest_file=None):
         """
-        Initialize manifest objects. All attributes are stored into
-        `_attrs`.
+        Initialize manifest objects.
+
+        Args:
+            path (Path): Path in which the module is located
+
+            attrs (dict): Data to set in the manifest.
+
+            manifest_file (Path): Location of the manifest itself if provided.
         """
         if attrs is None:
             attrs = {}
@@ -132,7 +210,11 @@ class Manifest(object):
 
     def set_defaults(self):
         """
-        Set some defaults when initializing an object
+        Set some defaults when initializing an object.
+
+        It uses the values as defined in `Manifest.defaults`. If a value
+        is already present in `self._attrs`, it will not update the value
+        from the defaults.
         """
         for key, value in Manifest.defaults.items():
             if key not in self._attrs:
@@ -142,9 +224,21 @@ class Manifest(object):
                     self._attrs[key] = value
 
     def __getattr__(self, name, default=None):
+        """
+        Get an attribute from `self._attrs`.
+        """
         return self._attrs.get(name, default)
 
     def __setattr__(self, name, value):
+        """
+        Set an attribute into the manifest. If it is a protected
+        attribute, it will use the super method, otherwise it will
+        set the custom attributes in `self._attrs`.
+
+        The reason why some attributes are separate is that you
+        wouldn't want to save some attributes to the manifest. For
+        example, the `path` of the module doesn't have to get saved.
+        """
         if (
             name in Manifest.properties
             # name in Manifest.defaults.keys()
@@ -154,26 +248,93 @@ class Manifest(object):
             self._attrs[name] = value
 
     def __lt__(self, other):
+        """
+        Comparison function using the name property.
+
+        It is required to make Manifest sortable in a list by name.
+        Sorting modules lists can be required in order to give
+        consistent results.
+
+        For example, a simple text diff would fail if the module set
+        was returned in random order. When sorting the modules in a list,
+        the output will always be the same if both sets are the same.
+
+        Args:
+            other (Manifest): The other manifest to be compared against.
+
+        Returns:
+            bool: if the name is bigger than the other name.
+        """
         return self.path.name < other.path.name
 
     def __eq__(self, other):
+        """
+        Compare a manifest against something else.
+
+        This method will compare an other object with the path name of
+        the current manifest. The other will be converted to a path name
+        if possible and compared. If it's not possible to compare it to
+        a path name, then it is considered as unequal.
+
+        Args:
+            other (Manifest|str|Path,Any): the other to be checked against.
+        """
         if isinstance(other, Manifest):
             return self.path == other.path
         elif isinstance(other, str):
             return self.path.name == Path(other).name
+        elif isinstance(other, Path):
+            return self.path.name == other.name
         else:
             return False
 
     def __contains__(self, value):
+        """
+        Check if a property is defined in properties of the
+        manifest.
+
+        Example:
+
+        .. code-block: python
+
+            'technical_name' in self
+            >> True
+
+        Args:
+            value (str): Name of a property
+
+        Returns:
+            bool: If the property is present in the manifest.
+        """
         return value in self._attrs
 
     def __hash__(self):
+        """
+        Makes the manifest hashable based on its name.
+
+        In practice two modules in different path would get
+        the same hash. The reason for this is that odoo doesn't
+        handle having 2 different modules with the same path name.
+
+        When importing a module it could pick one or the other module
+        based on how `odoo.addons` searches for modules within the
+        defined paths.
+
+        Obviously, you should check if you have 2 modules with the
+        same technical name.
+        """
         return hash(self.path.name)
 
     def __str__(self):
+        """
+        Serialize the str interpretation of a manifest.
+        """
         return str(self.path)
 
     def __repr__(self):
+        """
+        Python representation of a manifest with all its properties.
+        """
         return "Manifest({path}, {attrs})".format(
             path=repr(self.path),
             attrs=repr(self._attrs)
@@ -181,7 +342,7 @@ class Manifest(object):
 
     def values(self):
         """
-        Return manifest values
+        Returns the manifest's properties.
         """
         return self._attrs
 
@@ -202,7 +363,6 @@ class Manifest(object):
             attribute (list(str)): List of attribute key to set
 
             value (any): Value to set to the attribute path
-
         """
         if len(attribute) == 0:
             raise ArgumentError(
