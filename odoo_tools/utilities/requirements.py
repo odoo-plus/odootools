@@ -1,17 +1,10 @@
 from collections import defaultdict
 
-try:
-    from pip._internal.network.session import PipSession
-    from pip._internal.req.req_file import parse_requirements
-    from pip._internal.req.constructors import (
-        install_req_from_parsed_requirement
-    )
-except ImportError:
-    from pip.download import PipSession
-    from pip.req.req_file import parse_requirements
-
-    def install_req_from_parsed_requirement(req):
-        return req
+from pip._internal.network.session import PipSession
+from pip._internal.req.req_file import parse_requirements
+from pip._internal.req.constructors import (
+    install_req_from_parsed_requirement
+)
 
 
 class Requirement(object):
@@ -39,9 +32,10 @@ def merge_requirements(files):
             if requirement.markers and not requirement.markers.evaluate():
                 continue
 
-            if not hasattr(requirement.req, 'name'):
+            if not requirement.name:
                 links.add(requirement.link.url)
-                break
+                continue
+
             name = requirement.req.name.lower()
             specifiers = requirement.req.specifier
             extras = requirement.req.extras

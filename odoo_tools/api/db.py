@@ -10,9 +10,22 @@ from ..exceptions import InstallModulesError
 _logger = logging.getLogger(__name__)
 
 
+# When parsing an odoo config multiple times,
+# it will complain that some keys aren't defined.
+# Some of those keys are from config that can't be saved
+# back to the configuration file.
 resettable_keys = [
     "load_language",
 ]
+
+
+@contextmanager
+def manage(env, manager=None):
+    if manager and env.odoo_version() < 15:
+        with manager.manage():
+            yield
+    else:
+        yield
 
 
 def set_missing_keys(config, key, value):
@@ -52,6 +65,7 @@ def after_config(man):
 
 
 def initialize_odoo(man):
+    _logger.info("Init Odoo")
     import odoo
     man.config._parse_config([])
     if man.environment.context.init_logger:
@@ -61,6 +75,7 @@ def initialize_odoo(man):
 
 
 def ensure_db(man):
+    _logger.info("Ensure db exists")
     import odoo
     from odoo.service.db import _create_empty_database
     try:
@@ -111,7 +126,10 @@ class DbApi(object):
                         to_install.remove(mod.name)
                         to_update.add(mod.name)
             except Exception:
-                pass
+                _logger.error(
+                    "Something went wrong while searching installed modules",
+                    exc_info=True
+                )
 
         for mod in to_install:
             self.config['init'][mod] = 1
@@ -291,6 +309,8 @@ class DbApi(object):
     @contextmanager
     def env(self, uid=None, ctx=None):
         import odoo
+        from odoo.api import Environment
+        from psycopg2 import errors
 
         if uid is None:
             uid = 1
@@ -301,10 +321,15 @@ class DbApi(object):
         odoo_registry = odoo.registry(self.database)
 
         # Post Init database with base module
-        with closing(odoo_registry.cursor()) as cr:
-            try:
-                env = odoo.api.Environment(cr, uid, ctx)
-                yield env
-                env.cr.commit()
-            except Exception:
-                env.cr.rollback()
+        with manage(self.environment, manager=Environment):
+            with closing(odoo_registry.cursor()) as cr:
+                try:
+                    env = Environment(cr, uid, ctx)
+                    yield env
+                except errors.InFailedSqlTransaction:
+                    env.cr.rollback()
+
+                try:
+                    env.cr.commit()
+                except Exception:
+                    env.cr.rollback()

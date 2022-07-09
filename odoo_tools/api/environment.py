@@ -123,20 +123,16 @@ class Environment(object):
                 section used by odoo. But the section can be set to something
                 different to define additional sections for use.
         """
-        if not self._config:
-            raise NoConfigError("No config file currently open")
-
-        self._config.set(section, key, value)
+        with self.config():
+            self._config.set(section, key, value)
 
     def get_config(self, key, section='options'):
         """
         Get a configuration settings in the currently open configuration file.
         """
-        if not self._config:
-            raise NoConfigError("No config file currently open")
-
         try:
-            return self._config.get(section, key)
+            with self.config():
+                return self._config.get(section, key)
         except NoOptionError:
             return None
         except NoSectionError:
@@ -219,7 +215,7 @@ class Environment(object):
             addons_paths = ",".join(env.addons_paths())
 
             with env.config():
-                env.set_config("addons_paths", addons_paths)
+                env.set_config("addons_path", addons_paths)
 
         Returns:
             paths (List<Path>): The list of paths containing installable
@@ -227,7 +223,7 @@ class Environment(object):
         """
         try:
             with self.config() as config:
-                paths = config.get('options', 'addons_paths')
+                paths = config.get('options', 'addons_path')
 
             config_paths = set(
                 Path(path)
@@ -244,9 +240,11 @@ class Environment(object):
         base_addons_paths = config_paths
 
         try:
+            base_addons = self.path() / "addons"
             if not self.context.exclude_odoo:
-                base_addons = self.path() / "addons"
                 base_addons_paths.add(base_addons)
+            else:
+                self.context.excluded_paths.add(base_addons)
         except OdooNotInstalled:
             pass
 

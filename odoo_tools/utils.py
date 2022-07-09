@@ -67,3 +67,17 @@ class ConfigParser(configparser.ConfigParser):
         if section not in self:
             self.add_section(section)
         return super(ConfigParser, self).set(section, option, value)
+
+
+class ProtectedDict(dict):
+    def __init__(self, protected_values):
+        self.protected_values = protected_values
+
+        super(ProtectedDict, self).__init__(
+            **protected_values
+        )
+
+    def __setitem__(self, key, value):
+        if key in self.protected_values:
+            return
+        super(ProtectedDict, self).__setitem__(key, value)

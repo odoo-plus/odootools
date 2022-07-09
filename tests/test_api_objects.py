@@ -1,4 +1,5 @@
 import pytest
+from pathlib import Path
 from odoo_tools.api.objects import CompanySpec, Manifest
 
 
@@ -97,6 +98,8 @@ def test_manifest_set_attribute(tmp_path):
 
     deps = manifest.external_dependencies['python']
     assert deps == ['web', 'base', 'fun']
+
+    assert manifest == Path('a/b/sup')
 
 
 def test_invalid_manifest(tmp_path):

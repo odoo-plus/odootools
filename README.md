@@ -13,6 +13,10 @@ management of odoo environment.
 
     pip install odoo-tools
 
+## Documentation
+
+You can check the documentation hosted [here](https://odoo-tools.readthedocs.io/en/latest/).
+
 
 ## Example of use
 
@@ -34,11 +38,9 @@ Define addons paths based on paths in /var/lib/addons:
 
     env = Environment()
     env.context.custom_paths.add(Path("/var/lib/addons"))
+    env.set_config('addons_path', env.addons_paths())
 
-    with env.config():
-        env.set_config('addons_paths', env.addons_paths())
-
-This will not simply add `/var/lib/addons` to the `addons_paths`. It
+This will not simply add `/var/lib/addons` to the `addons_path`. It
 will search into this folder for directories that have installable
 addons in them. `addons_paths()` returns all possible addons paths
 detected based on the environment variables, odoorc file and actual

@@ -8,7 +8,8 @@ from odoo_tools.utils import (
     is_subdir_of,
     filter_excluded_paths,
     convert_env_value,
-    random_string
+    random_string,
+    ProtectedDict
 )
 
 
@@ -86,3 +87,27 @@ def test_random_string():
         random_string(10)
         assert random.choice.call_count == 10
         ranges.assert_has_calls([call(10)])
+
+
+def test_protected_dict():
+    vals = ProtectedDict(
+        protected_values=dict(
+            key=1,
+            value=2
+        )
+    )
+
+    assert vals['key'] == 1
+    assert vals['value'] == 2
+
+    assert 'key' in vals
+    assert 'value' in vals
+    assert 'msg' not in vals
+
+    vals['key'] = 2
+    vals['value'] = 3
+    vals['msg'] = 4
+
+    assert vals['key'] == 1
+    assert vals['value'] == 2
+    assert vals['msg'] == 4
