@@ -1,6 +1,7 @@
 import os
 import pytest
-from mock import patch
+from mock import patch, MagicMock
+from odoo_tools.api.objects import Manifest
 
 from odoo_tools.entrypoints import entrypoint
 from odoo_tools.docker.user_entrypoint import (
@@ -138,3 +139,25 @@ def test_set_env_config(odoo_env):
         assert odoo_env.get_config('db_name') == 'db1'
         assert odoo_env.get_config('server_wide_modules') == 'web,base,kankan'
         assert odoo_env.get_config('without_demo') == 'web'
+
+
+@pytest.mark.skipif(
+    'TEST_ODOO' not in os.environ,
+    reason="Requires odoo to fetch env_options"
+)
+def test_export_translations(tmp_path):
+    db = MagicMock()
+
+    db.export_translation_terms.return_value = [
+        ('fr', 'mod', []),
+    ]
+
+    manifest = Manifest(
+        path=tmp_path / 'mod'
+    )
+
+    po_files = manifest.export_translations(
+        db, ['fr']
+    )
+
+    assert len(po_files) == 1

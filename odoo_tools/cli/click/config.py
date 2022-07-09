@@ -38,3 +38,14 @@ def list_values(ctx):
         for key, value in config._sections.items():
             for key2, value in value.items():
                 print("{}.{} = {}".format(key, key2, value))
+
+
+@config.command(
+    "path",
+    help="Display where is located the config file."
+)
+@click.pass_context
+def show_config_path(ctx):
+    env = ctx.obj['env']
+
+    print(env.context.odoo_rc)

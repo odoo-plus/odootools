@@ -63,7 +63,7 @@ def add_addons_path(ctx, addons_path):
     with env.config() as config:
         config.set(
             'options',
-            'addons_paths',
+            'addons_path',
             ",".join(paths)
         )
 
@@ -88,6 +88,6 @@ def remove_addons_path(ctx, addons_path):
     with env.config() as config:
         config.set(
             'options',
-            'addons_paths',
+            'addons_path',
             ",".join(paths)
         )

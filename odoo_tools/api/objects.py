@@ -616,6 +616,8 @@ class Manifest(object):
             [self.technical_name]
         )
 
+        po_files = []
+
         for language, module, rows in translations:
             filename = get_translation_filename(language, module)
             trans_path = self.path / 'i18n' / filename
@@ -647,3 +649,7 @@ class Manifest(object):
                 po_writer.add_entries(rows)
 
                 po_writer.write()
+
+                po_files.append(po_writer)
+
+        return po_files

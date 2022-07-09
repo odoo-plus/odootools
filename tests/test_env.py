@@ -62,11 +62,11 @@ def test_env_config(tmp_path):
     with env.config():
         assert env.get_config('xmlrcp_interface') == 'localhost'
 
-    with pytest.raises(NoConfigError):
-        env.get_config('addons_paths')
+    assert env.get_config('addons_path') is None
 
-    with pytest.raises(NoConfigError):
-        env.set_config('addons_paths', '1')
+    env.set_config('addons_path', '1')
+
+    assert env.get_config('addons_path') == '1'
 
 
 def test_env_config_addons_path(tmp_path):
@@ -75,7 +75,7 @@ def test_env_config_addons_path(tmp_path):
     env.context.odoo_rc = tmp_path / 'odoo.cfg'
 
     with env.config():
-        env.set_config('addons_paths', ",".join([str(tmp_path)]))
+        env.set_config('addons_path', ",".join([str(tmp_path)]))
 
     paths = env.addons_paths()
     assert paths == {tmp_path}

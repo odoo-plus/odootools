@@ -31,6 +31,7 @@ setuptools.setup(
         "click",
         "passlib",
         "ptpython",
+        "pip>=10.0",
     ],
     extras_require={
         "docs": [
