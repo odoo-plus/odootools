@@ -1,8 +1,15 @@
+import os
+import tempfile
 import sys
 import pytest
 import subprocess
+from pathlib import Path
 from mock import MagicMock
 from odoo_tools.odoo import Environment
+from odoo_tools.utilities.logging import (
+    ignore_odoo_warnings,
+    ignore_default_warnings
+)
 
 from tests.utils import generate_addons
 
@@ -11,7 +18,13 @@ from tests.utils import generate_addons
 def env(tmp_path):
     odoo_env = Environment()
     odoo_env.context.odoo_rc = tmp_path / 'odoo.cfg'
+
     yield odoo_env
+
+    config = Path(odoo_env.context.odoo_rc)
+
+    if config.exists():
+        config.unlink()
 
 
 @pytest.fixture
@@ -30,6 +43,9 @@ def addons_path(env, tmp_path):
 def odoo_cleanup(env):
     print("tearing down")
     odoo_path = env.path()
+
+    if Path(env.context.odoo_rc).exists():
+        Path(env.context.odoo_rc).unlink()
 
     subprocess.run(['pip', 'uninstall', '-y', 'odoo'])
 
@@ -56,7 +72,9 @@ def odoo_env():
     options.target = False
     options.cache = False
 
-    env.manage.install_odoo('15.0', opts=options)
+    odoo_version = "{}.0".format(os.environ['TEST_ODOO'])
+
+    env.manage.install_odoo(odoo_version, opts=options)
 
     try:
         yield env
@@ -74,9 +92,25 @@ def odoo_release():
     options.target = False
     options.cache = False
 
-    env.manage.install_odoo('15.0', release="20220624", opts=options)
+    odoo_version = "{}.0".format(os.environ['TEST_ODOO'])
+
+    env.manage.install_odoo(odoo_version, release="20220624", opts=options)
 
     try:
         yield env
     finally:
         odoo_cleanup(env)
+
+
+@pytest.fixture(autouse=True)
+def change_test_dir(request, monkeypatch):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # monkeypatch.chdir(request.fspath.dirname)
+        monkeypatch.chdir(temp_dir)
+        yield
+
+
+@pytest.fixture(autouse=True)
+def ignore_warnings(request):
+    ignore_odoo_warnings()
+    ignore_default_warnings()

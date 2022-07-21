@@ -3,4 +3,6 @@ from tests.fixtures import (
     addons_path,
     odoo_release,
     odoo_env,
+    change_test_dir,
+    ignore_warnings,
 )

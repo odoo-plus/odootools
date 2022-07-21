@@ -153,6 +153,7 @@ def find_modules(path, filters=None):
     modules = set()
 
     path = Path.cwd() / path
+    path = path.resolve()
 
     manifest_globs = fast_search_manifests(path)
 

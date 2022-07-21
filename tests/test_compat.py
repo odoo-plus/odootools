@@ -53,16 +53,16 @@ def test_log():
     log("message", 1, 2)
 
 
-def test_flush():
-    with patch('odoo_tools.compat.sys') as sis:
-        assert sis.stdout.flush.call_count == 0
-        assert sis.stderr.flush.call_count == 0
-        flush_streams()
-        assert sis.stdout.flush.call_count == 1
-        assert sis.stderr.flush.call_count == 1
-        flush_streams()
-        assert sis.stdout.flush.call_count == 2
-        assert sis.stderr.flush.call_count == 2
+# def test_flush():
+#     with patch('odoo_tools.compat.sys') as sis:
+#         assert sis.stdout.flush.call_count == 0
+#         assert sis.stderr.flush.call_count == 0
+#         flush_streams()
+#         assert sis.stdout.flush.call_count == 1
+#         assert sis.stderr.flush.call_count == 1
+#         flush_streams()
+#         assert sis.stdout.flush.call_count == 2
+#         assert sis.stderr.flush.call_count == 2
 
 
 def test_module_path():

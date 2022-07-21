@@ -142,6 +142,17 @@ class OdooSource(object):
                 "--no-deps",
             ]
 
+        if (
+            self.parsed_version.major > 10 and
+            self.parsed_version.major < 14
+        ):
+            new_args = args[:]
+            new_args += [
+                "setuptools<58"
+            ]
+
+            run(new_args)
+
         args += ['.', '-r', str(self.requirement_file)]
 
         with cd(self.odoo_dir):

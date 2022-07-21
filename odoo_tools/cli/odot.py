@@ -11,6 +11,8 @@ from .click.shell import shell
 from .click.manage import manage
 from .click.services import service
 from .click.platform import platform
+from .click.users import user
+from .click.db import db
 
 
 @click.group()
@@ -51,3 +53,5 @@ command.add_command(shell)
 command.add_command(manage)
 command.add_command(service)
 command.add_command(platform)
+command.add_command(user)
+command.add_command(db)

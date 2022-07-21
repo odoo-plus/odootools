@@ -34,10 +34,10 @@ def get_value(ctx, section, key):
 def list_values(ctx):
     env = ctx.obj['env']
 
-    with env.config() as config:
-        for key, value in config._sections.items():
-            for key2, value in value.items():
-                print("{}.{} = {}".format(key, key2, value))
+    options = env.odoo_options()
+    for section, values in options.items():
+        for key, value in values.items():
+            print("{}.{} = {}".format(section, key, value))
 
 
 @config.command(
