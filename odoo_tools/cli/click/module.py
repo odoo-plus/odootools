@@ -286,6 +286,7 @@ def show_dependencies(
         for mod in mods:
             print(mod)
 
+
 @module.command(
     help="List requirements required by modules in addons_paths"
 )

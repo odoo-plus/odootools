@@ -346,6 +346,7 @@ def test_master_password_encrypted(env, tmp_path):
 
         crypto_context.identify.return_value = "plaintext"
         crypto_context.encrypt.return_value = "mocked_encrypted"
+        crypto_context.hash.return_value = "mocked_encrypted"
 
         crypto.return_value = crypto_context
 

@@ -1,9 +1,12 @@
 import os
+import sys
 import pytest
+from collections import defaultdict
 from mock import patch, MagicMock
 from odoo_tools.api.objects import Manifest
 
 from odoo_tools.entrypoints import entrypoint
+from odoo_tools import entrypoints
 from odoo_tools.docker.user_entrypoint import (
     setup_env_config
 )
@@ -38,6 +41,10 @@ def test_get_odoo_addons(odoo_env):
     reason="Testing Odoo is disabled"
 )
 def test_env_options(odoo_env):
+    from odoo.tools import config
+
+    config['workers'] = 0
+
     vals = dict(
         ODOO_LOAD="web,base,fun",
         ODOO_WORKERS="3",
@@ -45,11 +52,26 @@ def test_env_options(odoo_env):
     )
 
     with patch.dict(os.environ, vals):
-        config = odoo_env.env_options()
+        conf = odoo_env.env_options()
 
-        assert config['workers'] == "3"
-        assert config['server_wide_modules'] == "web,base,fun"
-        assert config['db_name'] == 'fun'
+        with odoo_env.config() as conf1:
+            conf1.set('queue', 'channel', 1)
+
+        assert conf['workers'] == "3"
+        assert conf['server_wide_modules'] == "web,base,fun"
+        assert conf['db_name'] == 'fun'
+
+        assert config.get('server_wide_modules') == 'base,web'
+        assert config.get('db_name') is False
+        assert config.get('workers') == 0
+        assert config.misc.get('queue') is None
+
+        odoo_env.sync_options()
+
+        assert config.get('server_wide_modules') == 'web,base,fun'
+        assert config.get('db_name') == "fun"
+        assert config.get('workers') == "3"
+        assert config.misc['queue']['channel'] == '1'
 
 
 @pytest.mark.skipif(
@@ -85,11 +107,31 @@ def test_release(odoo_release):
     reason="Testing Odoo is disabled"
 )
 def test_init_db(odoo_release):
-    db = odoo_release.manage.db("test12")
+    entrypoints.custom_entrypoints = defaultdict(list)
+    dbname = "test_{}_{}_{}".format(
+        os.environ['TEST_ODOO'],
+        sys.version_info.major,
+        sys.version_info.minor,
+    )
+    db = odoo_release.manage.db(dbname)
+
+    def initialize_odoo_test(manage):
+        assert 1 == 1
+
+    def setup_company_test(db):
+        with db.env() as env:
+            assert 'res.country' in env
+            ResCountry = env['res.country']
+            assert len(ResCountry.search([])) > 0
+
+    entrypoint("odoo_tools.manage.initialize_odoo")(initialize_odoo_test)
+    entrypoint("odoo_tools.manage.after_initdb")(setup_company_test)
 
     db.default_entrypoints()
 
-    odoo_release.manage.initialize_odoo()
+    assert odoo_release.path().name == 'odoo'
+    assert len(odoo_release.addons_paths()) == 1
+    assert odoo_release.modules.get('base') is not None
 
     db.init(
         modules=["sale", "stock"],
@@ -117,14 +159,14 @@ def test_init_db(odoo_release):
     'TEST_ODOO' not in os.environ,
     reason="Requires odoo to fetch env_options"
 )
-def test_set_env_config(odoo_env):
+def test_set_env_config(odoo_env, tmp_path):
     new_environ = {}
 
     with patch.dict(os.environ, new_environ, clear=True):
         setup_env_config(odoo_env)
 
     with odoo_env.config():
-        assert odoo_env.get_config('db_host') is None
+        assert odoo_env.get_config('db_host') is False
 
     new_environ = {
         "ODOO_DATABASE": "db1",

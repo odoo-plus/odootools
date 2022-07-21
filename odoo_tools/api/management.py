@@ -1,5 +1,8 @@
 import six
 import logging
+import psycopg2
+from contextlib import closing
+from urllib.parse import urlparse
 
 from .db import DbApi
 from ..entrypoints import execute_entrypoint
@@ -7,15 +10,188 @@ from ..configuration.odoo import (
     OfficialRelease,
     GitRelease
 )
+from ..db import get_tables, fetch_db_version, db_filter
 
 
 _logger = logging.getLogger(__name__)
 
 
-class MangementApi(object):
+class ManagementApi(object):
     def __init__(self, environment):
         self.environment = environment
         self._initialized = False
+
+    def connection_info(self, db_or_uri):
+        if db_or_uri.startswith(('postgresql://', 'postgres://')):
+            # extract db from uri
+            us = urlparse(db_or_uri)
+            if len(us.path) > 1:
+                db_name = us.path[1:]
+            elif us.username:
+                db_name = us.username
+            else:
+                db_name = us.hostname
+
+            return {
+                'dsn': db_or_uri,
+                'database': db_name
+            }
+
+        connection_info = {
+            'database': db_or_uri
+        }
+
+        for p in ('host', 'port', 'user', 'password', 'sslmode'):
+            config_name = "db_{}".format(p)
+
+            cfg = (
+                (
+                    self.options[config_name]
+                    if config_name in self.options
+                    else None
+                ) or
+                self.environment.get_config(config_name)
+            )
+
+            if cfg:
+                connection_info[p] = cfg
+
+        return connection_info
+
+    def db_connect(self, db):
+        connection_info = self.connection_info(db)
+        return psycopg2.connect(**connection_info)
+
+    def get_active_dbs(self, template=None):
+        db_sql = """
+        select
+            db.datname
+        from
+            pg_database as db
+            left join pg_roles as usr
+                on db.datdba = usr.oid
+        where
+            usr.rolname = current_role and
+            not db.datistemplate and
+            db.datallowconn and
+            db.datname not in %s
+        order by
+            db.datname
+        """
+
+        templates = ('postgres', template)
+
+        with closing(self.db_connect('postgres')) as conn:
+            with closing(conn.cursor()) as cr:
+                cr.execute(db_sql, (templates,))
+
+                res = [
+                    name
+                    for (name,) in cr.fetchall()
+                ]
+
+        return res
+
+    def get_db_version(self, dbname):
+        db_info = {
+            "name": dbname
+        }
+
+        try:
+            with closing(self.db_connect(dbname)) as conn:
+                try:
+                    with closing(conn.cursor()) as cr:
+                        if len(get_tables(cr, {'ir_module_module'})) >= 1:
+                            db_info['version'] = fetch_db_version(cr)
+                            db_info['status'] = 'ok'
+                        else:
+                            db_info['status'] = 'invalid'
+                except Exception:
+                    db_info['status'] = 'invalid'
+        except Exception:
+            db_info['status'] = 'missing'
+
+        return db_info
+
+    def db_list(
+        self,
+        hostname=None,
+        db_name=None,
+        dbfilter=None,
+        filter_missing=False,
+        filter_version=False,
+        filter_invalid=False,
+        include_extra_dbs=False,
+    ):
+        if not dbfilter:
+            dbfilter = self.environment.get_config('dbfilter')
+
+        if not db_name:
+            db_name = self.environment.get_config('db_name')
+
+        db_template = self.environment.get_config('db_template') or 'template0'
+        db_names = []
+
+        if db_name:
+            for db in db_name.split(','):
+                temp_name = db.strip()
+                if temp_name:
+                    db_names.append(temp_name)
+
+        active_dbs = self.get_active_dbs(
+            template=db_template
+        )
+
+        valid_dbs = [
+            self.get_db_version(dbname)
+            for dbname in active_dbs
+        ]
+
+        if filter_invalid:
+            valid_dbs = [
+                db
+                for db in valid_dbs
+                if db['status'] != 'invalid'
+            ]
+
+        if filter_missing:
+            valid_dbs = [
+                db
+                for db in valid_dbs
+                if db['status'] == 'ok'
+            ]
+
+        if filter_version:
+            valid_dbs = [
+                db
+                for db in valid_dbs
+                if 'version' in db and db['version'] == filter_version
+            ]
+
+        if dbfilter:
+            valid_dbs = db_filter(valid_dbs, dbfilter, hostname)
+
+        dbs_hash = {
+            db['name']: db
+            for db in valid_dbs
+        }
+
+        result_dbs = []
+
+        if db_names:
+            for db in db_names:
+                if db in dbs_hash:
+                    result_dbs.append(dbs_hash[db])
+
+            if include_extra_dbs:
+                for db in dbs_hash.values():
+                    if db['name'] not in db_names:
+                        result_dbs.append(db)
+        else:
+            for db in dbs_hash.values():
+                result_dbs.append(db)
+
+        return result_dbs
 
     def db(self, database):
         """
@@ -35,6 +211,10 @@ class MangementApi(object):
 
     @property
     def config(self):
+        return self.environment.odoo_config()
+
+    @property
+    def options(self):
         """
         Returns and odoo configparser.
 
@@ -49,13 +229,7 @@ class MangementApi(object):
         Returns:
             configparser: the original odoo config object.
         """
-        try:
-            from odoo.tools import config
-            return config
-        except Exception:
-            pass
-
-        raise SystemError("Odoo doesn't seems to be installed")
+        return self.environment.odoo_options()['options']
 
     def initialize_odoo(self):
         """

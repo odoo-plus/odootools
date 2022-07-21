@@ -24,6 +24,9 @@ import subprocess
 from pathlib import Path
 # from configparser import ConfigParser, NoOptionError, NoSectionError
 from importlib.util import find_spec
+import logging
+
+_logger = logging.getLogger(__name__)
 
 SIGSEGV = signal.SIGSEGV.value
 quote = shlex.quote
@@ -39,8 +42,8 @@ def flush_streams():
     in this library are relatively small. It usually never fill the logs fast
     enough.
     """
-    sys.stdout.flush()
-    sys.stderr.flush()
+    # sys.stdout.flush()
+    # sys.stderr.flush()
 
 
 def log(message, *args, **kwargs):
@@ -52,8 +55,9 @@ def log(message, *args, **kwargs):
     Parameters:
         message (str): The message to log
     """
-    print(message, *args, **kwargs)
-    flush_streams()
+    # print(message, *args, **kwargs)
+    _logger.info(message, *args, **kwargs)
+    # flush_streams()
 
 
 def module_path(module, raise_not_found=True):

@@ -1,4 +1,5 @@
 # import sys
+import psycopg2
 from contextlib import closing, contextmanager
 import logging
 from itertools import groupby
@@ -30,10 +31,11 @@ def manage(env, manager=None):
 
 def set_missing_keys(config, key, value):
     try:
+        # odoo.tools.configmanager doesn't handle "in"
         if key not in config:
-            config[key] = False
+            config[key] = value
     except KeyError:
-        config[key] = False
+        config[key] = value
 
 
 def before_config(man):
@@ -67,10 +69,18 @@ def after_config(man):
 def initialize_odoo(man):
     _logger.info("Init Odoo")
     import odoo
+    from odoo.release import version_info
+
     man.config._parse_config([])
+
+    man.environment.sync_options()
+
     if man.environment.context.init_logger:
         odoo.netsvc.init_logger()
-    man.config._warn_deprecated_options()
+
+    if version_info[0] >= 14:
+        man.config._warn_deprecated_options()
+
     odoo.modules.module.initialize_sys_path()
 
 
@@ -125,11 +135,24 @@ class DbApi(object):
                     for mod in installed_modules:
                         to_install.remove(mod.name)
                         to_update.add(mod.name)
+            except psycopg2.OperationalError:
+                _logger.error(
+                    "SQL Error",
+                    exc_info=True
+                )
+                return
+            except KeyError:
+                _logger.error(
+                    "Odoo doesn't seem to be initialized",
+                    exc_info=True
+                )
+                return
             except Exception:
                 _logger.error(
                     "Something went wrong while searching installed modules",
                     exc_info=True
                 )
+                return
 
         for mod in to_install:
             self.config['init'][mod] = 1
@@ -141,7 +164,7 @@ class DbApi(object):
         for key in self.config['init'].keys():
             self.config['init'][key] = False
 
-        for key in self.config['init'].keys():
+        for key in self.config['update'].keys():
             self.config['update'][key] = False
 
     def init(self, modules, country, language="en_US", without_demo=True):
@@ -156,7 +179,8 @@ class DbApi(object):
         self.install_modules_registry(
             ["base"],
             phase="Initializing database",
-            event="initdb"
+            event="initdb",
+            force=True
         )
 
         to_install = modules.copy()

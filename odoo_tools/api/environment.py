@@ -1,26 +1,26 @@
 import os
 import toml
-import sys
 import logging
 from pathlib import Path
 from contextlib import contextmanager
 from configparser import NoSectionError, NoOptionError
 
-from ..exceptions import OdooNotInstalled, NoConfigError
+from ..exceptions import OdooNotInstalled
 from ..compat import module_path
-from ..modules.search import find_addons_paths, find_modules_paths
+from ..modules.search import find_addons_paths
 from ..utils import (
     filter_excluded_paths,
     to_path_list,
     convert_env_value,
     ConfigParser
 )
+from ..utilities.config import get_env_params, parse_value, get_defaults
 from ..configuration.misc import (
     get_resource
 )
 
 from .context import Context
-from .management import MangementApi
+from .management import ManagementApi
 from .modules import ModuleApi
 
 
@@ -70,8 +70,9 @@ class Environment(object):
 
         self.context = context
         self.modules = ModuleApi(self)
-        self.manage = MangementApi(self)
-        self._config = None
+        self.manage = ManagementApi(self)
+        self._config = ConfigParser()
+        self._nested = False
 
     def path(self):
         """
@@ -131,15 +132,15 @@ class Environment(object):
         Get a configuration settings in the currently open configuration file.
         """
         try:
-            with self.config():
-                return self._config.get(section, key)
+            with self.config(readonly=True):
+                return parse_value(self._config.get(section, key))
         except NoOptionError:
             return None
         except NoSectionError:
             return None
 
     @contextmanager
-    def config(self):
+    def config(self, readonly=False):
         """
         A context manager that can be used to read/write configuration for
         odoo.
@@ -155,38 +156,44 @@ class Environment(object):
         """
         config_path = Path(self.context.odoo_rc)
 
-        if not self._config:
-            nested = False
-            conf = ConfigParser()
-        else:
-            nested = True
-            conf = self._config
+        nested = self._nested
+        is_top = False
 
-        if not self._config and config_path.exists():
+        if not nested:
+            self._nested = True
+            is_top = True
+
+        if not nested and config_path.exists():
             try:
-                conf.read(str(config_path))
+                self._config.read(str(config_path))
             except Exception:
                 _logger.info("Couldn't read ODOO_RC file.", exc_info=True)
 
+        if not self._config._defaults and self.odoo_version():
+            try:
+                params_by_name = get_env_params(self, self.odoo_version())
+            except OdooNotInstalled:
+                params_by_name = {}
+
+            self._config._defaults = get_defaults(params_by_name)
+
         try:
-            self._config = conf
-            yield conf
+            yield self._config
         except Exception:
-            if not nested:
-                self._config = None
             raise
         finally:
-            if not nested:
-                self._config = None
+            if is_top:
+                self._nested = False
 
-        if not nested:
+        if not nested and not readonly:
             try:
                 with config_path.open('w') as out:
-                    conf.write(out)
+                    defaults = self._config._defaults
+                    self._config._defaults = {}
+                    self._config.write(out)
+                    self._config._defaults = defaults
             except Exception:
-                _logger.info("Couldn't write config ", exc_info=True)
-                with config_path.open('wb') as out:
-                    conf.write(out)
+                _logger.error("Couldn't write config ", exc_info=True)
 
     def addons_paths(self):
         """
@@ -222,7 +229,7 @@ class Environment(object):
                 addons.
         """
         try:
-            with self.config() as config:
+            with self.config(readonly=True) as config:
                 paths = config.get('options', 'addons_path')
 
             config_paths = set(
@@ -266,6 +273,9 @@ class Environment(object):
         return valid_paths
 
     def odoo_config(self):
+        """
+        Returns odoo config regardless of being in openerp/odoo
+        """
         try:
             from odoo.tools import config as odoo_config
             return odoo_config
@@ -278,31 +288,64 @@ class Environment(object):
                     "Cannot use config without odoo being installed"
                 )
 
-    def env_options(self):
-        try:
-            odoo_config = self.odoo_config()
-        except OdooNotInstalled:
-            return {}
+    def odoo_options(self):
+        env_options = self.env_options()
 
-        params_by_name = {}
-        for key, opt in odoo_config.casts.items():
-            value_opt = opt.get_opt_string()
-            value_opt = value_opt.upper().replace('--', 'ODOO_')
-            value_opt = value_opt.replace('-', '_')
-            params_by_name[value_opt] = key
+        options = {}
+
+        with self.config(readonly=True) as config:
+            for section, values in config._sections.items():
+                sections_vals = options.setdefault(section, {})
+                for key, value in values.items():
+                    sections_vals[key] = value
+
+        if 'options' in options:
+            options['options'].update(env_options)
+        else:
+            options['options'] = env_options
+
+        return options
+
+    def env_options(self):
+        """
+        Load environment variable options.
+        """
+        try:
+            params_by_name = get_env_params(self, self.odoo_version())
+        except OdooNotInstalled:
+            params_by_name = {}
 
         configs = {}
 
         for key, value in os.environ.items():
-            if not key.startswith('ODOO_'):
-                continue
-
             if key in params_by_name:
-                config_name = params_by_name[key]
+                option = params_by_name[key]
+                config_name = option[0]
                 converted_value = convert_env_value(key, value)
                 configs[config_name] = converted_value
 
         return configs
+
+    def sync_options(self):
+        """
+        Sync options to odoo configmanager
+
+        Loads the config file and loads the environment
+        variables options. Then set the options into
+        `odoo.tools.config` in the options and misc
+        parameters.
+        """
+        config = self.odoo_config()
+        odoo_options = self.odoo_options()
+
+        opts = odoo_options.pop('options')
+
+        config.options.update(opts)
+
+        for section, values in odoo_options.items():
+            sec = config.misc.setdefault(section, {})
+            for key, value in values.items():
+                sec[key] = parse_value(value)
 
     def requirement_files(self, lookup_requirements=False):
         found_files = set()

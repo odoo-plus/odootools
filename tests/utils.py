@@ -1,7 +1,4 @@
-import pytest
-from odoo_tools.compat import Path
 from odoo_tools.api.objects import Manifest
-from odoo_tools.odoo import Environment
 
 
 def generate_odoo_dir(tmp_path):

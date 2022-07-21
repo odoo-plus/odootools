@@ -2,7 +2,8 @@ import string
 import random
 from .compat import Path
 import configparser
-
+from configparser import _UNSET
+from .utilities.config import parse_value
 
 def from_csv(value, custom_type=None):
     if not value:
@@ -62,11 +63,41 @@ def random_string(stringLength=10):
     return ''.join(random.choice(letters) for i in range(stringLength))
 
 
-class ConfigParser(configparser.ConfigParser):
+class ConfigParser(configparser.RawConfigParser):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
+        if (
+            (
+                section not in self._sections or
+                option not in self._sections[section]
+            ) and
+            self._defaults and
+            option in self._defaults
+        ):
+            return parse_value(self._defaults[option])
+        else:
+            return super().get(
+                section, option, raw=raw, vars=vars, fallback=fallback
+            )
+
     def set(self, section, option, value=None):
         if section not in self:
             self.add_section(section)
+
+        if (
+            section == 'options' and
+            self._defaults and
+            option in self._defaults and
+            parse_value(self._defaults[option]) == parse_value(value)
+        ):
+            return
+
         return super(ConfigParser, self).set(section, option, value)
+
+    def set_defaults(self, defaults):
+        self._defaults = defaults
 
 
 class ProtectedDict(dict):

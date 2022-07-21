@@ -1,11 +1,14 @@
 import toml
 import json
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, PropertyMock
 from click.testing import CliRunner
 
 import os
 from odoo_tools.cli.odot import command
+from odoo_tools.api.management import ManagementApi
+from odoo_tools.api.db import DbApi
+from odoo_tools.api.environment import Environment
 # from odoo_tools.cli import fetch_addons, copy_addons
 
 
@@ -14,9 +17,18 @@ def runner():
     return CliRunner()
 
 
-def test_command():
-    with pytest.raises(SystemExit):
-        command()
+def test_command(runner):
+    result = runner.invoke(
+        command,
+        ['--help']
+    )
+    assert result.exception is None
+
+    result = runner.invoke(
+        command,
+        []
+    )
+    assert result.exception is None
 
 
 def test_shell(runner):
@@ -727,3 +739,538 @@ def test_path_set_get(runner, tmp_path):
     assert result.output == "{}\n".format(
         addons_path,
     )
+
+
+def test_manage_install_odoo(runner, tmp_path):
+    with patch.object(ManagementApi, 'install_odoo') as mock_method:
+        mock_method.side_effect = lambda *args, **kwargs: (args, kwargs)
+
+        result = runner.invoke(
+            command,
+            [
+                'manage',
+                'setup',
+                '15.0'
+            ]
+        )
+
+        assert result.exception is None
+
+        mock_method.assert_called_once_with(
+            '15.0',
+            release=None,
+            ref="15.0",
+            repo='https://github.com/odoo/odoo.git',
+            opts={'languages': 'all'}
+        )
+
+        mock_method.reset_mock()
+
+        result = runner.invoke(
+            command,
+            [
+                'manage',
+                'setup',
+                '--languages', 'fr_CA',
+                '--repo', 'https://github.com/oca/ocb.git',
+                '--upgrade',
+                '--target', tmp_path / 'fun',
+                '--cache', tmp_path / 'cache',
+                '14.0'
+            ]
+        )
+
+        assert result.exception is None
+
+        mock_method.assert_called_once_with(
+            '14.0',
+            release=None,
+            ref="14.0",
+            repo='https://github.com/oca/ocb.git',
+            opts={
+                'languages': 'fr_CA',
+                'upgrade': True,
+                'target': tmp_path / 'fun',
+                'cache': tmp_path / 'cache'
+            }
+        )
+
+        mock_method.reset_mock()
+
+        result = runner.invoke(
+            command,
+            [
+                'manage',
+                'setup',
+                '--release', '20200101',
+                '--languages', '',
+                '13.0'
+            ]
+        )
+
+        assert result.exception is None
+
+        mock_method.assert_called_once_with(
+            '13.0',
+            release='20200101',
+            ref="13.0",
+            repo='https://github.com/odoo/odoo.git',
+            opts={
+                'languages': 'all',
+            }
+        )
+
+        mock_method.reset_mock()
+
+        result = runner.invoke(
+            command,
+            [
+                'manage',
+                'setup',
+                '--ref', 'abcd',
+                '--languages', '',
+                '13.0'
+            ]
+        )
+
+        assert result.exception is None
+
+        mock_method.assert_called_once_with(
+            '13.0',
+            release=None,
+            ref="abcd",
+            repo='https://github.com/odoo/odoo.git',
+            opts={
+                'languages': 'all',
+            }
+        )
+
+
+def test_manage_install(runner, tmp_path):
+    with patch.object(DbApi, 'install_modules') as mock_method, \
+         patch.object(Environment, 'check_odoo', return_value=True), \
+         patch.object(ManagementApi, 'config', new_callable=PropertyMock):
+
+        mock_method.side_effect = lambda *args, **kwargs: (args, kwargs)
+
+        result = runner.invoke(
+            command,
+            [
+                'manage',
+                'install',
+                '-m', 'sale',
+                '-m', 'stock',
+                '-m', 'website,project',
+                'test_db',
+            ]
+        )
+
+        assert result.exception is None
+
+        mock_method.assert_called_once_with(
+            {'sale', 'stock', 'website', 'project'},
+            phase='Installing Modules',
+            force=False,
+            event='install_modules',
+        )
+
+        mock_method.reset_mock()
+
+        result = runner.invoke(
+            command,
+            [
+                'manage',
+                'install',
+                '-m', 'stock,sale',
+                '-m', 'website,project',
+                '--force',
+                'test_db',
+            ]
+        )
+
+        assert result.exception is None
+
+        mock_method.assert_called_once_with(
+            {'sale', 'stock', 'website', 'project'},
+            phase='Installing Modules',
+            force=True,
+            event='install_modules',
+        )
+
+
+def test_manage_update(runner, tmp_path):
+    with patch.object(DbApi, 'install_modules') as mock_method, \
+         patch.object(Environment, 'check_odoo', return_value=True), \
+         patch.object(ManagementApi, 'config', new_callable=PropertyMock):
+
+        mock_method.side_effect = lambda *args, **kwargs: (args, kwargs)
+
+        result = runner.invoke(
+            command,
+            [
+                'manage',
+                'update',
+                '-m', 'sale',
+                '-m', 'stock',
+                '-m', 'website,project',
+                'test_db',
+            ]
+        )
+
+        assert result.exception is None
+
+        mock_method.assert_called_once_with(
+            {'sale', 'stock', 'website', 'project'},
+            phase='update modules',
+            event='update_modules',
+        )
+
+        mock_method.reset_mock()
+
+        result = runner.invoke(
+            command,
+            [
+                'manage',
+                'update',
+                '-m', 'stock,sale',
+                '-m', 'website,project',
+                'test_db',
+            ]
+        )
+
+        assert result.exception is None
+
+        mock_method.assert_called_once_with(
+            {'sale', 'stock', 'website', 'project'},
+            phase='update modules',
+            event='update_modules',
+        )
+
+
+def test_manage_uninstall(runner, tmp_path):
+    with patch.object(DbApi, 'uninstall_modules') as mock_method, \
+         patch.object(Environment, 'check_odoo', return_value=True), \
+         patch.object(ManagementApi, 'config', new_callable=PropertyMock):
+
+        mock_method.side_effect = lambda *args, **kwargs: (args, kwargs)
+
+        result = runner.invoke(
+            command,
+            [
+                'manage',
+                'uninstall',
+                '-m', 'sale',
+                '-m', 'stock',
+                '-m', 'website,project',
+                'test_db',
+            ]
+        )
+
+        assert result.exception is None
+
+        mock_method.assert_called_once_with(
+            {'sale', 'stock', 'website', 'project'},
+        )
+
+        mock_method.reset_mock()
+
+        result = runner.invoke(
+            command,
+            [
+                'manage',
+                'uninstall',
+                '-m', 'stock,sale',
+                '-m', 'website,project',
+                'test_db',
+            ]
+        )
+
+        assert result.exception is None
+
+        mock_method.assert_called_once_with(
+            {'sale', 'stock', 'website', 'project'},
+        )
+
+
+def test_db_list(runner, tmp_path):
+    with patch.object(ManagementApi, 'db_list') as db_list:
+        db_list.return_value = [
+            {'name': 'db1'},
+            {'name': 'db2'}
+        ]
+
+        result = runner.invoke(
+            command,
+            [
+                'db',
+                'list',
+            ]
+        )
+
+        assert result.exception is None
+        assert result.output == 'db1\ndb2\n'
+
+        # Testing parameters passed
+        db_list.reset_mock()
+        result = runner.invoke(
+            command,
+            [
+                'db',
+                'list',
+                '--filter-version', 'any'
+            ]
+        )
+
+        db_list.assert_called_once_with(
+            db_name=None,
+            dbfilter=None,
+            hostname=None,
+            filter_missing=False,
+            filter_invalid=False,
+            filter_version=False,
+            include_extra_dbs=False
+        )
+
+        assert result.exception is None
+        assert result.output == 'db1\ndb2\n'
+
+        # Testing parameters passed
+        db_list.reset_mock()
+        result = runner.invoke(
+            command,
+            [
+                'db',
+                'list',
+            ],
+            env={
+                'ODOO_VERSION': '15'
+            }
+        )
+
+        assert result.exception is None
+        assert result.output == 'db1\ndb2\n'
+        db_list.assert_called_once_with(
+            db_name=None,
+            dbfilter=None,
+            hostname=None,
+            filter_missing=False,
+            filter_invalid=False,
+            filter_version='15.0',
+            include_extra_dbs=False
+        )
+
+
+def test_db_init(runner, tmp_path):
+
+    with patch.object(DbApi, 'init') as mock_method, \
+         patch.object(Environment, 'check_odoo', return_value=True), \
+         patch.object(ManagementApi, 'config', new_callable=PropertyMock):
+
+        result = runner.invoke(
+            command,
+            [
+                'db',
+                'init',
+                'testdb'
+            ]
+        )
+
+        assert result.exception is None
+
+        mock_method.assert_called_once_with(
+            set(),
+            language='en_US',
+            country=None,
+            without_demo=True,
+        )
+
+        mock_method.reset_mock()
+
+        result = runner.invoke(
+            command,
+            [
+                'db',
+                'init',
+                '-m', 'sale,stock',
+                '--language', 'fr_CA',
+                '--country', 'CA',
+                '--with-demo',
+                'testdb'
+            ]
+        )
+
+        assert result.exception is None
+
+        mock_method.assert_called_once_with(
+            {'sale', 'stock'},
+            language='fr_CA',
+            country='CA',
+            without_demo=False,
+        )
+
+        mock_method.reset_mock()
+
+
+def test_list_users(runner):
+    with patch.object(DbApi, 'init') as mock_method, \
+         patch.object(DbApi, 'env') as env_method, \
+         patch.object(Environment, 'check_odoo', return_value=True), \
+         patch.object(ManagementApi, 'config', new_callable=PropertyMock) as conf:
+
+        users_rs = MagicMock()
+        users_rs.get_metadata.return_value = [{'xmlid': 'base.admin'}]
+        users_rs.id = 2
+        users_rs.name = "admin"
+        users_rs.login = "admin"
+        users_rs.xmlid = "base.admin"
+
+        users_mock = MagicMock()
+        users_mock.search.return_value = [users_rs]
+
+        env_mock2 = MagicMock()
+        env_mock2.__getitem__.return_value = users_mock
+
+        env_mock = MagicMock()
+        env_mock.__enter__.return_value = env_mock2
+
+        env_method.return_value = env_mock
+
+        result = runner.invoke(
+            command,
+            [
+                'user',
+                'ls',
+                '--internal',
+                'somedb'
+            ]
+        )
+
+        env_method.assert_called_once_with()
+
+        env_mock2.__getitem__.assert_called_once_with('res.users')
+        users_mock.search.assert_called_once_with([
+            ['share', '=', False],
+        ])
+
+        assert result.exception is None
+
+        users_mock.search.reset_mock()
+        result = runner.invoke(
+            command,
+            [
+                'user',
+                'ls',
+                '--domain', "[['name', '=', 'admin']]",
+                '--shared',
+                'somedb'
+            ]
+        )
+
+        users_mock.search.assert_called_once_with([
+            ['name', '=', 'admin'],
+            ['share', '=', True],
+        ])
+        assert result.exception is None
+
+        users_mock.search.reset_mock()
+        result = runner.invoke(
+            command,
+            [
+                'user',
+                'ls',
+                '--inactive',
+                'somedb'
+            ]
+        )
+
+        users_mock.search.assert_called_once_with([
+            ['active', '=', False],
+        ])
+
+        assert result.exception is None
+
+
+def test_remove_user(runner):
+    with patch.object(DbApi, 'init') as mock_method, \
+         patch.object(DbApi, 'env') as env_method, \
+         patch.object(Environment, 'check_odoo', return_value=True), \
+         patch.object(ManagementApi, 'config', new_callable=PropertyMock) as conf:
+
+        users_rs = MagicMock()
+        users_rs.get_metadata.return_value = [{'xmlid': 'base.admin'}]
+        users_rs.id = 2
+        users_rs.name = "admin"
+        users_rs.login = "admin"
+        users_rs.xmlid = "base.admin"
+
+        users_mock = MagicMock()
+        users_mock.search.return_value = [users_rs]
+        users_mock.with_context.return_value.search.return_value = users_rs
+
+        env_mock2 = MagicMock()
+        env_mock2.__getitem__.return_value = users_mock
+
+        env_mock = MagicMock()
+        env_mock.__enter__.return_value = env_mock2
+
+        env_method.return_value = env_mock
+
+        result = runner.invoke(
+            command,
+            [
+                'user',
+                'remove',
+                'somedb',
+                'admin'
+            ]
+        )
+
+        assert result.exception is None
+        users_rs.unlink.assert_called_once()
+
+        users_rs.unlink.reset_mock()
+        result = runner.invoke(
+            command,
+            [
+                'user',
+                'remove',
+                '--soft',
+                'somedb',
+                'admin'
+            ]
+        )
+
+        assert result.exception is None
+        users_rs.toggle_active.assert_called_once()
+
+        users_rs.toggle_active.reset_mock()
+        users_rs.active = False
+        result = runner.invoke(
+            command,
+            [
+                'user',
+                'remove',
+                '--soft',
+                'somedb',
+                'admin'
+            ]
+        )
+
+        assert result.exception is None
+        users_rs.toggle_active.assert_not_called()
+
+        users_mock.with_context.return_value.search.return_value = None
+        result = runner.invoke(
+            command,
+            [
+                'user',
+                'remove',
+                '--soft',
+                'somedb',
+                'admin'
+            ]
+        )
+
+        assert result.exception is None
+        users_rs.toggle_active.assert_not_called()
+        users_rs.unlink.assert_not_called()

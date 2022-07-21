@@ -1,9 +1,12 @@
+import sys
 import toml
+from types import ModuleType
 import pytest
 from odoo_tools.odoo import Environment
 from odoo_tools.compat import Path
-from odoo_tools.exceptions import OdooNotInstalled, NoConfigError
+from odoo_tools.exceptions import OdooNotInstalled
 from odoo_tools.api.objects import Manifest
+from unittest.mock import MagicMock
 
 from tests.utils import (
     generate_addons,
@@ -156,11 +159,36 @@ def test_addons_paths(tmp_path):
     for mod in env.modules.list(reload=True):
         mod.package()
 
-   
+
 def test_env_options(tmp_path):
     env = Environment()
 
     env.env_options()
+
+
+def test_env_config_import():
+    sys.modules['openerp'] = ModuleType('openerp')
+    sys.modules['openerp.tools'] = ModuleType('openerp.tools')
+    conf = MagicMock()
+    sys.modules['openerp.tools'].config = conf
+
+    env = Environment()
+
+    assert env.odoo_config() == conf
+
+    sys.modules['odoo'] = ModuleType('odoo')
+    sys.modules['odoo.tools'] = ModuleType('odoo.tools')
+    conf = MagicMock()
+    sys.modules['odoo.tools'].config = conf
+
+    env = Environment()
+
+    assert env.odoo_config() == conf
+
+    del sys.modules['odoo']
+    del sys.modules['openerp']
+    del sys.modules['odoo.tools']
+    del sys.modules['openerp.tools']
 
 
 def test_manifest_save_and_files(tmp_path):

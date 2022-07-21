@@ -3,6 +3,7 @@ import sys
 from ptpython.repl import embed
 
 from ...utils import ProtectedDict
+from ...exceptions import OdooNotInstalled
 
 
 @click.command()
@@ -28,7 +29,7 @@ def shell(ctx, config, db, params):
 
     try:
         db = odoo_env.manage.db(db_name)
-    except SystemError:
+    except OdooNotInstalled:
         print("Odoo doesn't seem to be installed.")
         sys.exit(1)
 

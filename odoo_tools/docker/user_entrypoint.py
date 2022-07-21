@@ -163,7 +163,12 @@ def install_master_password(
         env.odoo_version() > 10 and
         ctx.identify(master_password) == 'plaintext'
     ):
-        master_password = ctx.encrypt(master_password)
+        hash_password = (
+            ctx.hash
+            if hasattr(ctx, 'hash')
+            else ctx.encrypt
+        )
+        master_password = hash_password(master_password)
 
     with env.config():
         env.set_config('admin_passwd', master_password)

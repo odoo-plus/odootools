@@ -1,6 +1,7 @@
 import pytest
 from odoo_tools.modules.search import Manifest
 from odoo_tools.odoo import Environment
+from odoo_tools.exceptions import OdooNotInstalled
 
 
 def test_packages(tmp_path):
@@ -30,5 +31,10 @@ vim""")
 
 def test_management_config():
     env = Environment()
-    with pytest.raises(SystemError):
-        env.manage.config()
+    with pytest.raises(OdooNotInstalled):
+        env.manage.config
+
+
+def test_management_options():
+    env = Environment()
+    assert isinstance(env.manage.options, dict)

@@ -1,8 +1,8 @@
 import click
 import logging
-from .utils import MODULE_TYPE
-from ...compat import Path
+from pathlib import Path
 
+from .utils import MODULE_TYPE
 from ...configuration.misc import DictObject
 
 
@@ -12,60 +12,6 @@ _logger = logging.getLogger(__name__)
 @click.group()
 def manage():
     pass
-
-
-@manage.command(
-    help="Initialize a database with modules and some configurations."
-)
-@click.argument("database")
-@click.option(
-    '-m',
-    '--modules',
-    type=MODULE_TYPE,
-    help="Modules to install",
-    multiple=True
-)
-@click.option(
-    '--with-demo',
-    help="Generate new database with demo",
-    is_flag=True,
-    default=False
-)
-@click.option(
-    '--country',
-    help="Country two letter code",
-)
-@click.option(
-    '-l',
-    '--language',
-    help="Languages to use",
-    multiple=True
-)
-@click.pass_context
-def init(ctx, database, modules, country, language, with_demo):
-    env = ctx.obj['env']
-    env.check_odoo()
-    manage = env.manage.db(database)
-
-    manage.default_entrypoints()
-
-    if not language:
-        language = ['en_US']
-
-    to_install = {
-        mod
-        for mods in modules
-        for mod in mods
-    }
-
-    manage.init(
-        to_install,
-        country=country,
-        without_demo=not with_demo,
-        language=",".join(language)
-    )
-
-    return True
 
 
 @manage.command(
@@ -240,6 +186,9 @@ def setup(
 
     if target:
         opts.target = Path.cwd() / target
+
+    if cache:
+        opts.cache = Path.cwd() / cache
 
     env.manage.install_odoo(
         version,

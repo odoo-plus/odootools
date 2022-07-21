@@ -1,5 +1,4 @@
-import six
-from six import ensure_binary, ensure_text
+from six import ensure_text
 import shutil
 import logging
 from ast import literal_eval
