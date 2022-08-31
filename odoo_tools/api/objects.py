@@ -1,3 +1,4 @@
+import hashlib
 from six import ensure_text
 import shutil
 import logging
@@ -549,6 +550,20 @@ class Manifest(object):
         """
         if self.path.exists():
             shutil.rmtree(self.path, ignore_errors=True)
+
+    def checksum(self):
+        """
+        Computes the checksum of the module itself.
+        This can later be used to check if the module has changed
+        and force an update of the module as the version that
+        is installed doesn't match the one on the filesystem.
+        """
+        check = hashlib.sha1()
+
+        for file in self.files():
+            check.update(file.open('rb').read())
+
+        return check
 
     def files(self):
         """
