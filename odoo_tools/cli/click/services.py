@@ -3,6 +3,7 @@ import giturlparse
 import click
 import toml
 import logging
+from tempfile import TemporaryDirectory
 
 from ...services.objects import ServiceManifests
 from ...compat import Path
@@ -32,10 +33,9 @@ def service():
 @click.argument('env')
 @click.pass_context
 def show(ctx, service_file, env, url):
-    with Path(service_file).open('r') as fin:
-        data = toml.load(fin)
+    env = ctx.obj['env']
 
-    manifests = ServiceManifests.parse(data)
+    manifests = env.services.get_services(service_file)
 
     service = manifests.services.get(env)
     resolved_service = service.resolved
@@ -67,33 +67,46 @@ def show(ctx, service_file, env, url):
 @click.argument('target')
 @click.pass_context
 def checkout(ctx, service_file, environment, target, cache, decrypt_key):
-    with Path(service_file).open('r') as fin:
-        data = toml.load(fin)
+    env = ctx.obj['env']
 
-    manifests = ServiceManifests.parse(data)
+    manifests = env.services.get_services(service_file)
 
     service = manifests.services.get(environment)
     resolved_service = service.resolved
 
-    if cache:
-        fetch_path = cache
-    else:
-        fetch_path = target
+    env.services.checkout(
+        resolved_service,
+        target,
+        cache or target,
+        decrypt_key
+    )
 
-    results = []
 
-    for key, addon in resolved_service.addons.items():
-        if not giturlparse.parse(addon.url).valid:
-            _logger.info(
-                "Skipping addon %s as it has an invalid url.", addon.url
-            )
-            continue
+@service.command("package")
+@click.option(
+    '--cache',
+)
+@click.option(
+    '--decrypt-key',
+)
+@click.option(
+    '-o',
+    '--output',
+    help="Output file"
+)
+@click.argument('service_file')
+@click.argument('environment')
+@click.pass_context
+def package(ctx, cache, service_file, environment, decrypt_key, output):
+    env = ctx.obj['env']
 
-        target_path = Path.cwd() / target / addon.repo_path
+    manifests = env.services.get_services(service_file)
+    service = manifests.services.get(environment)
+    resolved_service = service.resolved
 
-        path, info = fetch_addons(addon, fetch_path, decrypt_key=decrypt_key)
-
-        if fetch_path != target_path:
-            checkout_repo(path, target_path)
-
-        results.append(info)
+    results = env.services.package(
+        resolved_service,
+        output,
+        cache,
+        decrypt_key
+    )

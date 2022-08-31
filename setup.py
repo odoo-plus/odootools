@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="odoo-tools",
-    version="0.1.3.1",
+    version="0.1.4",
     author="Loïc Faure-Lacroix <lamerstar@gmail.com>",
     author_email="lamerstar@gmail.com",
     description="Odoo Tools",

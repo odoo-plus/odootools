@@ -1,5 +1,6 @@
 import os
 import toml
+import json
 import logging
 from pathlib import Path
 from contextlib import contextmanager
@@ -15,6 +16,7 @@ from ..utils import (
     ConfigParser
 )
 from ..utilities.config import get_env_params, parse_value, get_defaults
+from ..utilities.loaders import FileLoader
 from ..configuration.misc import (
     get_resource
 )
@@ -22,6 +24,7 @@ from ..configuration.misc import (
 from .context import Context
 from .management import ManagementApi
 from .modules import ModuleApi
+from .services import ServiceApi
 
 
 _logger = logging.getLogger(__name__)
@@ -71,8 +74,17 @@ class Environment(object):
         self.context = context
         self.modules = ModuleApi(self)
         self.manage = ManagementApi(self)
+        self.services = ServiceApi(self)
+
         self._config = ConfigParser()
         self._nested = False
+        self.loader = FileLoader()
+
+        self._prepare_parser()
+
+    def _prepare_parser(self):
+        self.loader.parsers['.toml'] = lambda data: toml.loads(data)
+        self.loader.parsers['.json'] = lambda data: json.loads(data)
 
     def path(self):
         """

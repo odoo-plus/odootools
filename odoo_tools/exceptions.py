@@ -12,3 +12,6 @@ class ArgumentError(Exception):
 
 class NoConfigError(Exception):
     pass
+
+class FileParserMissingError(Exception):
+    pass
