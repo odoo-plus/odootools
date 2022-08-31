@@ -398,7 +398,9 @@ def find_addons_paths(paths, options=False):
         for ep in pkg_resources.iter_entry_points(group=entry_point):
             functor = ep.load()
             new_paths = functor()
-            paths |= new_paths
+
+            if new_paths:
+                paths |= new_paths
 
     modules = find_modules_paths(
         paths,
