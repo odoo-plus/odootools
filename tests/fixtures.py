@@ -94,7 +94,20 @@ def odoo_release():
 
     odoo_version = "{}.0".format(os.environ['TEST_ODOO'])
 
-    env.manage.install_odoo(odoo_version, release="20220624", opts=options)
+    release_map = {
+        "13.0": "20221019",
+        "14.0": "20221019",
+        "15.0": "20221019",
+        "16.0": "20221019",
+    }
+
+    release = release_map[odoo_version]
+
+    env.manage.install_odoo(
+        odoo_version,
+        release=release,
+        opts=options
+    )
 
     try:
         yield env
