@@ -1,3 +1,4 @@
+import sys
 from odoo_tools.compat import Path
 from ..configuration.git import checkout_repo
 from .misc import (
@@ -128,7 +129,12 @@ class OdooSource(object):
 
         _logger.info("Installing odoo")
 
-        args = ['python', '-m', 'pip', 'install']
+        args = [
+            sys.executable,
+            '-m',
+            'pip',
+            'install'
+        ]
 
         if hasattr(self.options, 'upgrade') and self.options.upgrade:
             args.append('-U')
