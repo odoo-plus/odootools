@@ -7,17 +7,27 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - "main"
+      - "release-**"
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
-        odoo-version: ["13", "14", "15", "16"]
+        python-version:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
+        odoo-version:
+          - "13"
+          - "14"
+          - "15"
+          - "16"
         exclude:
           - odoo-version: "14"
             python-version: "3.10"
@@ -43,22 +53,28 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install postgres client
+
+    - name: Install Native Libraries
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential python3-dev postgresql-client libldap2-dev libsasl2-dev python3-psycopg2 python3-wheel python3-gevent
-    - name: Install dependencies
+        sudo apt-get install -y --no-install-recommends postgresql-client git curl build-essential libxml2-dev libsasl2-dev libsass-dev libldap2-dev libjpeg-dev
+        # python3-lxml python3-pip python3-psycopg2 python3-ldap python3-libsass python3-lxml python3-pillow python3-pypdf2 python3-psutil python3-asn1crypto
+
+    - name: Install Test Dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest codecov
         python -m pip install -e ".[test]"
+        python -m pip install "python-ldap>=3.2" "libsass<=0.21,>=0.18" "lxml>=4.5.0" "Pillow>=7.0" "PyPDF2>=1.26" "psutil>=5.5.1"
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
     - name: Test with pytest
       env:
         PGHOST: localhost

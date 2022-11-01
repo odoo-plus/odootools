@@ -1,3 +1,4 @@
+import tempfile
 import time
 import os
 from passlib.context import CryptContext
@@ -80,37 +81,32 @@ def install_python_dependencies(env):
 
     package_map = env.package_map()
 
-    if env.context.requirement_file_path:
-        file_path = env.context.requirement_file_path
-    else:
-        file_path = Path(env.context.odoo_rc).parent / 'requirements.txt'
+    # Convert the set to a sorted list to prevent causing
+    # changes with files with the same set but in a different
+    # order.
+    requirements = list(env.modules.requirements(
+        package_map=package_map,
+        extra_paths=requirement_files,
+    ))
+    requirements.sort()
+    data = "\n".join(requirements)
 
-    with file_path.open('w') as fout:
-        requirements = list(env.modules.requirements(
-            package_map=package_map,
-            extra_paths=requirement_files,
-        ))
+    for req_file in requirement_files:
+        _logger.info("Installing python packages from %s", req_file)
 
-        # Convert the set to a sorted list to prevent causing
-        # changes with files with the same set but in a different
-        # order.
-        requirements.sort()
+    with tempfile.TemporaryDirectory() as directory:
+        file_path = Path(directory) / 'requirements.txt'
 
-        data = "\n".join(requirements)
+        with file_path.open('w') as fout:
+            _logger.info("Requirements:\n%s", data)
+            fout.write(data)
 
-        fout.write(data)
-
-    for requirements in requirement_files:
-        _logger.info("Installing python packages from %s", requirements)
-
-    _logger.info("Requirements:\n%s", data)
-
-    retcode = pipe([
-        "pip",
-        "install",
-        "--user",
-        "-r", str(file_path)
-    ])
+        retcode = pipe([
+            "pip",
+            "install",
+            "--user",
+            "-r", str(file_path)
+        ])
 
     if env.context.strict_mode and retcode != 0:
         raise Exception("Failed to install pip dependencies")
