@@ -2,17 +2,7 @@ import click
 import logging
 
 from ..odoo import Environment
-
-from .click.module import module
-from .click.path import addons_paths
-from .click.config import config
-from .click.entrypoint import entrypoint
-from .click.shell import shell
-from .click.manage import manage
-from .click.services import service
-from .click.platform import platform
-from .click.users import user
-from .click.db import db
+from .registry import registry
 
 
 @click.group()
@@ -45,13 +35,5 @@ def command(ctx, config, log_level, exclude_odoo):
         logging.basicConfig(level=log_level)
 
 
-command.add_command(config)
-command.add_command(addons_paths)
-command.add_command(module)
-command.add_command(entrypoint)
-command.add_command(shell)
-command.add_command(manage)
-command.add_command(service)
-command.add_command(platform)
-command.add_command(user)
-command.add_command(db)
+registry.set_main(command)
+registry.load()
