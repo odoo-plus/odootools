@@ -402,3 +402,31 @@ class ManagementApi(object):
             )
 
         return package_list
+
+    def native_packages(self):
+        python_packages = [
+            "python3-pip",
+            "python3-psycopg2",
+            "python3-ldap",
+            "python3-libsass",
+            "python3-lxml",
+            "python3-pillow",
+            "python3-pypdf2",
+            "python3-psutil",
+            "python3-asn1crypto",
+            # "python3-reportlab", Not needed package badly get installed
+            # "python3-renderpm",
+        ]
+
+        base_packages = [
+            "git",
+            "curl",
+        ]
+
+        distrib = {
+            "default": base_packages + python_packages,
+            "ubuntu": base_packages + python_packages,
+            "debian": base_packages + python_packages
+        }
+
+        return distrib['ubuntu']

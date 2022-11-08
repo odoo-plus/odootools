@@ -33,9 +33,9 @@ def service():
 @click.argument('env')
 @click.pass_context
 def show(ctx, service_file, env, url):
-    env = ctx.obj['env']
+    oenv = ctx.obj['env']
 
-    manifests = env.services.get_services(service_file)
+    manifests = oenv.services.get_services(service_file)
 
     service = manifests.services.get(env)
     resolved_service = service.resolved

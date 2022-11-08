@@ -57,8 +57,24 @@ setuptools.setup(
     python_requires='>=3.6',
     entry_points={
         "console_scripts": [
-            "odootools = odoo_tools.cli.odot:command"
+            "odootools = odoo_tools.cli.odot:command",
         ],
+        "odootools.registry": [
+            "registry = odoo_tools.cli.registry:registry",
+        ],
+        "odootools.command": [
+            "module = odoo_tools.cli.click.module:module",
+            "addons_paths = odoo_tools.cli.click.path:addons_paths",
+            "config = odoo_tools.cli.click.config:config",
+            "entrypoint = odoo_tools.cli.click.entrypoint:entrypoint",
+            "shell = odoo_tools.cli.click.shell:shell",
+            "manage = odoo_tools.cli.click.manage:manage",
+            "service = odoo_tools.cli.click.services:service",
+            "platform = odoo_tools.cli.click.platform:platform",
+            "user = odoo_tools.cli.click.users:user",
+            "db = odoo_tools.cli.click.db:db",
+            "gen = odoo_tools.cli.click.gen:gen",
+        ]
     },
     package_data={
         "odoo_tools": [
