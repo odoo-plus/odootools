@@ -574,12 +574,16 @@ class Manifest(object):
         considered as "sources". It will also yield files located in
         the static folder.
         """
-        for file in self.path.glob('**/*'):
-            if file.is_dir():
-                continue
-            if file.name.endswith('.pyc'):
-                continue
+        all_files = [
+            file
+            for file in self.path.glob('**/*')
+            if not file.is_dir()
+            if not file.name.endswith('.pyc')
+        ]
 
+        all_files.sort()
+
+        for file in all_files:
             yield file
 
     def package(self):

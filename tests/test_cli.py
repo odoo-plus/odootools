@@ -1,20 +1,12 @@
 import toml
 import json
-import pytest
 from unittest.mock import patch, MagicMock, PropertyMock
-from click.testing import CliRunner
 
-import os
 from odoo_tools.cli.odot import command
 from odoo_tools.api.management import ManagementApi
 from odoo_tools.api.db import DbApi
 from odoo_tools.api.environment import Environment
 # from odoo_tools.cli import fetch_addons, copy_addons
-
-
-@pytest.fixture
-def runner():
-    return CliRunner()
 
 
 def test_command(runner):
@@ -761,7 +753,12 @@ def test_manage_install_odoo(runner, tmp_path):
             release=None,
             ref="15.0",
             repo='https://github.com/odoo/odoo.git',
-            opts={'languages': 'all'}
+            opts={
+                'languages': 'all',
+                'upgrade': False,
+                'target': None,
+                'cache': None
+            }
         )
 
         mock_method.reset_mock()
@@ -817,6 +814,9 @@ def test_manage_install_odoo(runner, tmp_path):
             repo='https://github.com/odoo/odoo.git',
             opts={
                 'languages': 'all',
+                'cache': None,
+                'target': None,
+                'upgrade': False
             }
         )
 
@@ -842,6 +842,9 @@ def test_manage_install_odoo(runner, tmp_path):
             repo='https://github.com/odoo/odoo.git',
             opts={
                 'languages': 'all',
+                'cache': None,
+                'target': None,
+                'upgrade': False,
             }
         )
 
@@ -1274,3 +1277,15 @@ def test_remove_user(runner):
         assert result.exception is None
         users_rs.toggle_active.assert_not_called()
         users_rs.unlink.assert_not_called()
+
+
+def test_gen(runner):
+    result = runner.invoke(
+        command,
+        [
+            'gen',
+            'info',
+        ]
+    )
+
+    assert result.exception is None

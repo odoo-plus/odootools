@@ -121,26 +121,14 @@ class OdooSource(object):
             self.installed_release
         )
 
-        if hasattr(self.options, 'languages'):
-            languages = self.options.languages
-        else:
-            languages = 'all'
+        languages = self.options.languages
 
         self.strip_languages(languages)
 
         _logger.info("Installing odoo")
 
-        target = (
-            self.options.target
-            if hasattr(self.options, 'target') and self.options.target
-            else None
-        )
-
-        upgrade = (
-            self.options.upgrade
-            if hasattr(self.options, 'upgrade') and self.options.upgrade
-            else False
-        )
+        target = self.options.target
+        upgrade = self.options.upgrade
 
         args = pip_command(target=target, upgrade=upgrade)
 
@@ -282,45 +270,3 @@ class OfficialRelease(OdooSource):
 
     def install(self):
         super().install()
-#
-#
-#   def setup_odoo_from_git(repo, ref, version, options=None):
-#
-#       if hasattr(options, 'cache'):
-#           cache = options.cache
-#       else:
-#           cache = None
-#
-#       installer = GitRelease(
-#           version,
-#           repo,
-#           ref,
-#           options=options,
-#           cache=cache
-#       )
-#
-#       with installer:
-#           if installer.need_update():
-#               installer.fetch()
-#               installer.checkout()
-#               installer.install()
-#
-#
-#   def setup_odoo_release(version, release, options=None):
-#       if hasattr(options, 'cache'):
-#           cache = options.cache
-#       else:
-#           cache = None
-#
-#       installer = OfficialRelease(
-#           version,
-#           release,
-#           options=options,
-#           cache=cache
-#       )
-#
-#       with installer:
-#           if installer.need_update():
-#               installer.fetch()
-#               installer.checkout()
-#               installer.install()

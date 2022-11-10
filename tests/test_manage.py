@@ -38,3 +38,13 @@ def test_management_config():
 def test_management_options():
     env = Environment()
     assert isinstance(env.manage.options, dict)
+
+
+def test_management_native_packages():
+    env = Environment()
+    default_packages = env.manage.native_packages("default")
+    assert len(default_packages) > 0
+
+    packages = env.manage.native_packages()
+    assert len(packages) > 0
+    assert packages != default_packages

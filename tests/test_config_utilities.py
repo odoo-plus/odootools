@@ -1,3 +1,5 @@
+import sys
+from pathlib import Path
 import pytest
 from unittest.mock import patch, MagicMock
 from odoo_tools.utilities.config import (
@@ -8,6 +10,10 @@ from odoo_tools.utilities.config import (
 )
 from odoo_tools.utils import ConfigParser
 from odoo_tools.api.environment import Environment
+from odoo_tools.configuration.pip import pip_command
+from odoo_tools.configuration.misc import find_in_path
+from odoo_tools.utilities.loaders import FileLoader
+from odoo_tools.exceptions import FileParserMissingError
 from configparser import NoOptionError
 
 
@@ -93,3 +99,72 @@ def test_config_set_defaults():
 
     with pytest.raises(NoOptionError):
         config.get('options', 'name')
+
+
+def test_pip_command():
+    executable = sys.executable
+    base_args = [executable, '-m', 'pip', 'install']
+
+    empty = pip_command()
+
+    assert empty == base_args
+
+    user_args = pip_command(user=True)
+    assert user_args == base_args + ['--user']
+
+    upgrade_args = pip_command(upgrade=True)
+    assert upgrade_args == base_args + ['-U']
+
+    target = Path("/tmp/fun")
+    target_args = pip_command(target=target)
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}"
+    assert target_args == base_args + [
+        '--target', str(target),
+        '--implementation', 'cp',
+        '--python', python_version,
+        '--no-deps'
+    ]
+
+    combined_args = pip_command(user=True, upgrade=True)
+    assert combined_args == base_args + ['--user', '-U']
+
+
+def test_file_loader(tmp_path):
+    loader = FileLoader()
+
+    raw_file = tmp_path / 'raw_file'
+    with raw_file.open('w') as fout:
+        fout.write("hey")
+
+    loaders = loader.get_loaders(raw_file)
+    assert loaders == []
+
+    data = loader.load_file(raw_file)
+    assert data == "hey"
+
+    raw_txt = tmp_path / 'raw.txt'
+    with raw_txt.open('w') as fout:
+        fout.write("hey")
+
+    with pytest.raises(FileParserMissingError):
+        loader.load_file(raw_txt)
+
+    loader.parsers['.txt'] = lambda data: data
+
+    data = loader.load_file(raw_txt)
+    assert data == "hey"
+
+
+def test_find_in_path(tmp_path):
+    path = find_in_path("/usr/bin/python")
+    assert path == "/usr/bin/python"
+
+    path = find_in_path("../fun")
+    assert path == "../fun"
+
+    python_exec = Path(sys.executable)
+    python_binary = python_exec.name
+    binary_path = python_exec.parent
+
+    path = find_in_path(python_binary, paths=[binary_path])
+    assert path == str(python_exec)
