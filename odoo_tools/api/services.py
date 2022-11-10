@@ -66,9 +66,10 @@ class ServiceApi(object):
         service,
         output_path,
         fetch_path=None,
-        decrypt_key=None
+        decrypt_key=None,
+        temp_dir_manager=TemporaryDirectory
     ):
-        with TemporaryDirectory() as tempdir:
+        with temp_dir_manager() as tempdir:
             target = Path(tempdir)
 
             self.checkout(

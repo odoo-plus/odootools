@@ -18,7 +18,7 @@ class CommandRegistry(object):
 
     def register_commands(self):
         for ep in iter_entry_points(group='odootools.command'):
-            registry.register(ep.name, ep.load())
+            self.register(ep.name, ep.load())
 
         for ep in iter_entry_points(group='odootools.command.ext'):
             command = self.groups[ep.name]

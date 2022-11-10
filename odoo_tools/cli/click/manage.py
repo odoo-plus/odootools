@@ -176,19 +176,10 @@ def setup(
 
     opts = DictObject()
 
-    if not languages:
-        opts.languages = "all"
-    else:
-        opts.languages = languages
-
-    if upgrade:
-        opts.upgrade = True
-
-    if target:
-        opts.target = Path.cwd() / target
-
-    if cache:
-        opts.cache = Path.cwd() / cache
+    opts.languages = languages if languages else "all"
+    opts.upgrade = True if upgrade else False
+    opts.target = Path.cwd() / target if target else None
+    opts.cache = Path.cwd() / cache if cache else None
 
     env.manage.install_odoo(
         version,

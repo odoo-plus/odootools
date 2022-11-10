@@ -2,6 +2,7 @@ import os
 import tempfile
 import sys
 import pytest
+from click.testing import CliRunner
 import subprocess
 from pathlib import Path
 from mock import MagicMock
@@ -10,6 +11,8 @@ from odoo_tools.utilities.logging import (
     ignore_odoo_warnings,
     ignore_default_warnings
 )
+from odoo_tools.patch import unload_modules
+from odoo_tools.exceptions import OdooNotInstalled
 
 from tests.utils import generate_addons
 
@@ -44,21 +47,16 @@ def odoo_cleanup(env):
     print("tearing down")
     odoo_path = env.path()
 
+    # Remove odoo config
     if Path(env.context.odoo_rc).exists():
         Path(env.context.odoo_rc).unlink()
 
+    # Remove odoo
     subprocess.run(['pip', 'uninstall', '-y', 'odoo'])
-
-    odoo_modules = [
-        key
-        for key in sys.modules.keys()
-        if key.startswith('odoo.')
-    ]
-
-    for mod in odoo_modules:
-        del sys.modules[mod]
-
     subprocess.run(['rm', '-rf', str(odoo_path)])
+
+    # Unload odoo
+    unload_modules("odoo")
 
 
 @pytest.fixture(scope="module")
@@ -69,8 +67,8 @@ def odoo_env():
 
     options.languages = "fr_CA"
     options.upgrade = False
-    options.target = False
-    options.cache = False
+    options.target = None
+    options.cache = None
 
     odoo_version = "{}.0".format(os.environ['TEST_ODOO'])
 
@@ -89,8 +87,8 @@ def odoo_release():
 
     options.languages = "fr_CA"
     options.upgrade = False
-    options.target = False
-    options.cache = False
+    options.target = None
+    options.cache = None
 
     odoo_version = "{}.0".format(os.environ['TEST_ODOO'])
 
@@ -114,3 +112,8 @@ def change_test_dir(request, monkeypatch):
 def ignore_warnings(request):
     ignore_odoo_warnings()
     ignore_default_warnings()
+
+
+@pytest.fixture
+def runner():
+    return CliRunner()

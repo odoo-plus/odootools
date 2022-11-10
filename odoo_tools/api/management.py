@@ -1,3 +1,4 @@
+import distro
 import six
 import logging
 import psycopg2
@@ -318,10 +319,7 @@ class ManagementApi(object):
 
         .. _NIGHTLY: https://nightly.odoo.com/
         """
-        if hasattr(opts, 'cache'):
-            cache = opts.cache
-        else:
-            cache = None
+        cache = opts.cache
 
         if release:
             installer = OfficialRelease(
@@ -403,7 +401,7 @@ class ManagementApi(object):
 
         return package_list
 
-    def native_packages(self):
+    def native_packages(self, distrib_override=None):
         python_packages = [
             "python3-pip",
             "python3-psycopg2",
@@ -423,10 +421,19 @@ class ManagementApi(object):
             "curl",
         ]
 
-        distrib = {
-            "default": base_packages + python_packages,
+        distrib_map = {
+            "default": base_packages,
             "ubuntu": base_packages + python_packages,
+            "fedora": base_packages + python_packages,
             "debian": base_packages + python_packages
         }
 
-        return distrib['ubuntu']
+        if distrib_override is not None:
+            distrib_id = distro.id()
+        else:
+            distrib_id = distrib_override
+
+        if distrib_id in distrib_map:
+            return distrib_map[distrib_id]
+        else:
+            return distrib_map['default']

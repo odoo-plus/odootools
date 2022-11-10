@@ -5,4 +5,5 @@ from tests.fixtures import (
     odoo_env,
     change_test_dir,
     ignore_warnings,
+    runner
 )

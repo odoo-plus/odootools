@@ -25,6 +25,7 @@ setuptools.setup(
         "packaging",
         "lxml",
         "docutils",
+        "distro",
         "polib",
         "six>=1.12.0",
         "cryptography",
