@@ -1,3 +1,4 @@
+import sys
 import tempfile
 import time
 import os
@@ -7,6 +8,7 @@ import logging
 
 from ..utils import random_string
 from ..compat import pipe, Path
+from ..configuration.pip import pip_command
 
 
 _logger = logging.getLogger(__name__)
@@ -101,12 +103,11 @@ def install_python_dependencies(env):
             _logger.info("Requirements:\n%s", data)
             fout.write(data)
 
-        retcode = pipe([
-            "pip",
-            "install",
-            "--user",
+        args = pip_command(user=True) + [
             "-r", str(file_path)
-        ])
+        ]
+
+        retcode = pipe(args)
 
     if env.context.strict_mode and retcode != 0:
         raise Exception("Failed to install pip dependencies")

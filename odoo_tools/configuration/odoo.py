@@ -11,6 +11,7 @@ from six import ensure_binary, ensure_str
 import logging
 import requests
 from packaging.version import parse as version_parse
+from .pip import pip_command
 
 _logger = logging.getLogger(__name__)
 
@@ -129,25 +130,22 @@ class OdooSource(object):
 
         _logger.info("Installing odoo")
 
-        args = [
-            sys.executable,
-            '-m',
-            'pip',
-            'install'
-        ]
+        target = (
+            self.options.target
+            if hasattr(self.options, 'target') and self.options.target
+            else None
+        )
 
-        if hasattr(self.options, 'upgrade') and self.options.upgrade:
-            args.append('-U')
+        upgrade = (
+            self.options.upgrade
+            if hasattr(self.options, 'upgrade') and self.options.upgrade
+            else False
+        )
 
-        if hasattr(self.options, 'target') and self.options.target:
-            args += [
-                "--target", str(self.options.target),
-                "--implementation", "cp",
-                "--python", "3.8",
-                # "--only-binary", ":all:"
-                "--no-deps",
-            ]
+        args = pip_command(target=target, upgrade=upgrade)
 
+        # Ensure setuptools less than 58 is installed for odoo
+        # versions from 11 to 13.
         if (
             self.parsed_version.major > 10 and
             self.parsed_version.major < 14
