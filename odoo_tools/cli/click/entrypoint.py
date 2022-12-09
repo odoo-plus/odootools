@@ -37,12 +37,7 @@ def entrypoint():
 def preprocess(ctx):
     env = ctx.obj['env']
 
-    if not env.context.skip_sudo_entrypoint:
-        ret = call_sudo_entrypoint()
-
     execute_entrypoint('odoo_tools.preprocess', env)
-
-    sys.exit(ret)
 
 
 @entrypoint.command()

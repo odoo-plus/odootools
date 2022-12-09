@@ -3,3 +3,4 @@ dist/
 odoo_tools.egg-info/
 *.pyc
 .coverage
+*.sess

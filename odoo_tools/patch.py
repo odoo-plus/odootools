@@ -3,30 +3,6 @@ import weakref
 import gc
 
 
-def used_in_modules(check_value):
-    val_id = id(check_value)
-
-    modules = [
-        (name, module)
-        for name, module in sys.modules.items()
-    ]
-
-    for mod_name, module in modules:
-        attributes = [
-            (name, value)
-            for name, value in module.__dict__.items()
-        ]
-
-        for name, value in attributes:
-            if id(value) == val_id:
-                yield mod_name, module, name
-
-
-def replace_modules_value(value, replacement):
-    for name, module, attribute in used_in_modules(value):
-        setattr(module, attribute, replacement)
-
-
 def unload_modules(module_name, unload_submodules=True):
     """
     Remove the module or the module and its submodules from sys.modules
@@ -95,4 +71,7 @@ def unload_modules(module_name, unload_submodules=True):
                     del refferer[key]
 
         if ref() is not None:
-            print(f"Couldn't completely unload {ref()} with {len(gc.get_referrers(ref()))}")
+            print(
+                f"Couldn't completely unload {ref()} with "
+                f"{len(gc.get_referrers(ref()))}"
+            )
