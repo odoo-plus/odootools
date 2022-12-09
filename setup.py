@@ -34,7 +34,8 @@ setuptools.setup(
         "ptpython",
         "pip>=10.0",
         "password-strength",
-        "psycopg2"
+        "psycopg2",
+        "overlaymodule",
     ],
     extras_require={
         "docs": [
