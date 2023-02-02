@@ -75,8 +75,8 @@ class StoredEnv(EnvironmentVariable):
             return value
 
     def __set__(self, owner, value):
-        super().__set__(owner, value)
         if not self.__readonly:
+            super().__set__(owner, value)
             owner._values[self.__name] = value
 
 
@@ -119,7 +119,7 @@ class EnvironmentVariables(object):
     :bool: Run odoo in Strict Mode (Default: True)
     """
 
-    ODOO_EXCLUDED_PATHS = StoredSetEnv(item_type=Path)
+    ODOO_EXCLUDED_PATHS = StoredSetEnv(item_type=Path, default=set)
     """
     :Set<Path>: Excluded paths will not be looked into when
     searching modules.
@@ -127,7 +127,7 @@ class EnvironmentVariables(object):
     Items are defined as csv values in environment variables.
     """
 
-    ODOO_EXTRA_PATHS = StoredSetEnv(item_type=Path)
+    ODOO_EXTRA_PATHS = StoredSetEnv(item_type=Path, default=set)
     """
     :Set<Path>: Extra paths are paths to look for modules other
     than the default ones.
@@ -137,7 +137,8 @@ class EnvironmentVariables(object):
 
     ODOO_EXTRA_APT_PACKAGES = StoredSetEnv(
         item_type=str,
-        alternate_names=['EXTRA_APT_PACKAGES']
+        alternate_names=['EXTRA_APT_PACKAGES'],
+        default=set
     )
     """
     :Set<Str> Extra apt packages to install other than the one
@@ -146,7 +147,7 @@ class EnvironmentVariables(object):
     Items are defined as csv values in environment variables.
     """
 
-    ODOO_DISABLED_MODULES = StoredSetEnv(item_type=str)
+    ODOO_DISABLED_MODULES = StoredSetEnv(item_type=str, default=set)
     """
     :Set<str>: Odoo modules that shouldn't exist. Those would get
     removed from the addons paths.
