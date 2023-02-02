@@ -1,9 +1,11 @@
+import re
 import click
 import logging
 from pathlib import Path
 
 from .utils import MODULE_TYPE
 from ...configuration.misc import DictObject
+from ...modules.assets import AssetsBundler
 
 
 _logger = logging.getLogger(__name__)
@@ -46,6 +48,37 @@ def update(ctx, database, modules):
     )
 
     return True
+
+
+@manage.command(
+    help="Build Asset"
+)
+@click.option(
+    '-d',
+    '--database',
+    help="Database"
+)
+@click.option(
+    '--minified',
+    is_flag=True,
+    default=False
+)
+@click.argument("type")
+@click.argument("asset")
+@click.pass_context
+def asset(ctx, database, asset, type, minified):
+    env = ctx.obj['env']
+    env.check_odoo()
+    manage = env.manage.db(database)
+    manage.default_entrypoints()
+
+    with manage.env() as oenv:
+        bundler = AssetsBundler(oenv, asset)
+
+        if type == 'css':
+            print(bundler.get_css(minified))
+        elif type == 'js':
+            print(bundler.get_js(minified))
 
 
 @manage.command(
