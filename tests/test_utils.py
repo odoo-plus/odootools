@@ -4,6 +4,10 @@ from mock import patch, call
 from pathlib import Path
 
 from odoo_tools.utils import (
+    to_csv,
+    from_bool,
+    to_bool,
+    obj_set,
     to_path_list,
     is_subdir_of,
     filter_excluded_paths,
@@ -11,6 +15,54 @@ from odoo_tools.utils import (
     random_string,
     ProtectedDict
 )
+
+
+def test_from_bool():
+    assert from_bool(True) == 'True'
+    assert from_bool(False) == 'False'
+    assert from_bool(1) == "True"
+    assert from_bool(0) == "False"
+
+
+def test_to_bool():
+    assert to_bool("true") is True
+    assert to_bool("True") is True
+    assert to_bool("TRUE") is True
+    # note that 1 is false because it's not true
+    assert to_bool("1") is False
+    assert to_bool("false") is False
+    assert to_bool("False") is False
+    assert to_bool("fAlSe") is False
+    assert to_bool("0") is False
+
+
+def test_obj_set():
+    deser = obj_set(',', list, Path)
+
+    assert deser('a,b') == [Path('a'), Path('b')]
+    assert deser('a,b;c') == [Path('a'), Path('b;c')]
+    assert deser(' a, b;c ') == [Path('a'), Path('b;c')]
+    assert deser('a,b,a') == [Path('a'), Path('b'), Path('a')]
+
+    deser = obj_set(',', set, Path)
+
+    assert deser('a,b') == {Path('a'), Path('b')}
+    assert deser('a,b,a') == {Path('a'), Path('b')}
+    assert deser('') == set()
+
+
+def test_to_csv():
+    serializer = to_csv(';')
+    assert serializer([]) == ""
+    assert serializer(["a"]) == "a"
+    assert serializer(["a", "b"]) == "a;b"
+    assert serializer(["a", "b", "c"]) == "a;b;c"
+
+    serializer = to_csv()
+    assert serializer([]) == ""
+    assert serializer(["a"]) == "a"
+    assert serializer(["a", "b"]) == "a,b"
+    assert serializer(["a", "b", "c"]) == "a,b,c"
 
 
 def test_to_path_list():

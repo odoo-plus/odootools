@@ -5,8 +5,6 @@ from odoo_tools.compat import SIGSEGV
 from pathlib import Path
 
 from odoo_tools.compat import (
-    flush_streams,
-    log,
     module_path,
     pipe,
 )
@@ -46,23 +44,6 @@ def test_pipe_sigsegv_no_crash():
         assert popen.wait.call_count == 1
         assert ret == -SIGSEGV
         assert os.environ == {}
-
-
-def test_log():
-    log("message")
-    log("message", 1, 2)
-
-
-# def test_flush():
-#     with patch('odoo_tools.compat.sys') as sis:
-#         assert sis.stdout.flush.call_count == 0
-#         assert sis.stderr.flush.call_count == 0
-#         flush_streams()
-#         assert sis.stdout.flush.call_count == 1
-#         assert sis.stderr.flush.call_count == 1
-#         flush_streams()
-#         assert sis.stdout.flush.call_count == 2
-#         assert sis.stderr.flush.call_count == 2
 
 
 def test_module_path():

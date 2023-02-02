@@ -140,8 +140,7 @@ class Context(object):
                 for path in envvars.ODOO_EXTRA_PATHS
             }
 
-        if envvars.ODOO_STRICT_MODE is not None:
-            args['strict_mode'] = envvars.ODOO_STRICT_MODE
+        args['strict_mode'] = envvars.ODOO_STRICT_MODE
 
         if envvars.ODOO_REQUIREMENTS_FILE:
             args['requirements_file_path'] = Path(

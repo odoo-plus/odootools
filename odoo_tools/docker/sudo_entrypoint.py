@@ -40,7 +40,7 @@ def install_apt_packages(odoo_env):
 def fix_access_rights(odoo_env):
     # Change to some python alternative of chown/chmod
     # provide a way to configure user:group names
-    if odoo_env.context.reset_access_rights == 'TRUE':
+    if odoo_env.context.reset_access_rights is True:
         pipe(["chown", "-R", "odoo:odoo", "/var/lib/odoo"])
         pipe(["chown", "-R", "odoo:odoo", "/etc/odoo"])
 
