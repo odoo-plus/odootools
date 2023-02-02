@@ -70,6 +70,9 @@ def test_environment_variables():
         assert 'ODOO_EXTRA_APT_PACKAGES' in values
         assert values['ODOO_EXTRA_APT_PACKAGES'] == set()
         assert env.ODOO_EXTRA_APT_PACKAGES == set()
+        env.ODOO_EXTRA_APT_PACKAGES = {'a', 'b'}
+        assert env.ODOO_EXTRA_APT_PACKAGES == {'a', 'b'}
+        assert os.environ['ODOO_EXTRA_APT_PACKAGES'] in ['a,b', 'b,a']
 
 
 def test_env_properties():
