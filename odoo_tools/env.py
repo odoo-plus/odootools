@@ -162,17 +162,8 @@ class EnvironmentVariables(object):
     EnvironmentVariables parser
     """
 
-    hmm = 1
-    """
-    Attributes:
-
-
-
-
-
-    """
-
     __fields__ = set()
+    ":Set<str>: Set of fields added to the class"
 
     # The base path where odoo is installed
     ODOO_BASE_PATH = StoredEnv()
@@ -189,13 +180,17 @@ class EnvironmentVariables(object):
     ODOO_EXCLUDED_PATHS = StoredSetEnv(item_type=Path)
     """
     :Set<Path>: Excluded paths will not be looked into when
-    searching modules
+    searching modules.
+
+    Items are defined as csv values in environment variables.
     """
 
     ODOO_EXTRA_PATHS = StoredSetEnv(item_type=Path)
     """
     :Set<Path>: Extra paths are paths to look for modules other
     than the default ones.
+
+    Items are defined as csv values in environment variables.
     """
 
     ODOO_EXTRA_APT_PACKAGES = StoredSetEnv(
@@ -205,12 +200,16 @@ class EnvironmentVariables(object):
     """
     :Set<Str> Extra apt packages to install other than the one
     introspected in modules.
+
+    Items are defined as csv values in environment variables.
     """
 
     ODOO_DISABLED_MODULES = StoredSetEnv(item_type=str)
     """
     :Set<str>: Odoo modules that shouldn't exist. Those would get
     removed from the addons paths.
+
+    Items are defined as csv values in environment variables.
     """
 
     MASTER_PASSWORD = StoredEnv()
@@ -223,16 +222,22 @@ class EnvironmentVariables(object):
     ":bool: Log the master password in the logs."
 
     SKIP_PIP = StoredBoolEnv(default=False)
-    ":bool: Skip the installation of pip modules."
+    """
+    :bool: Skip the installation of pip modules. (Default: False)
+    """
 
     SKIP_SUDO_ENTRYPOINT = StoredBoolEnv(default=False)
     """
     :bool: Skip the sudo entrypoint. The entry point is used
     mainly to setup things that require higher access like installing apt
-    packages.
+    packages. (Default: False)
     """
+
     SKIP_POSTGRES_WAIT = StoredBoolEnv(default=False)
-    ":bool: Tells to skip waiting for postgress to be up and running"
+    """
+    :bool: Tells to skip waiting for postgress to be up and running
+    (Default: False)
+    """
 
     ALLOW_DANGEROUS_SETTINGS = StoredBoolEnv(
         alternate_names=[
@@ -266,7 +271,7 @@ class EnvironmentVariables(object):
     """
     :bool: Reset access rights ensure that files in the home
     directory of the odoo user is set to the right user. This shouldn't
-    be necessary in most cases.
+    be necessary in most cases. (Default: False)
     """
 
     APT_INSTALL_RECOMMENDS = StoredBoolEnv(default=False)
@@ -275,6 +280,7 @@ class EnvironmentVariables(object):
     apt-get with --no-install-recommends. By default, the entrypoint will
     use --no-install-recommends, but if this environment variable is set
     to TRUE. It will not add this parameter to apt-get install.
+    (Default: False)
     """
 
     ODOO_REQUIREMENTS_FILE = StoredEnv()
@@ -286,7 +292,7 @@ class EnvironmentVariables(object):
     USE_ODOO_LOGGER = StoredBoolEnv(default=False)
     """
     :str: Tell the app to initialize the odoo logger instead of using the
-    default one.
+    default one. (Default: False)
     """
 
     PACKAGE_MAP_FILE = StoredEnv()
@@ -296,6 +302,9 @@ class EnvironmentVariables(object):
     """
 
     REQUIREMENTS_FILE_PATH = StoredEnv()
+    """
+    :str: Path of the requirement file to be saved. (Default: None)
+    """
 
     def __init__(self):
         self._values = {}
