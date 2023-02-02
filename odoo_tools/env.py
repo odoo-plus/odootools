@@ -3,7 +3,141 @@ Environment Variables
 =====================
 """
 from os import environ
-from .utils import from_csv
+
+
+def path_list(delimiter=',', container=list):
+
+    def deserializer(value):
+        from pathlib import Path
+
+        value = value or ''
+        elems = value.split(delimiter)
+
+        value = [
+            Path(path.strip())
+            for path in elems
+            if path.strip()
+        ]
+
+        return container(value)
+
+    return deserializer
+
+
+def to_csv(delimiter=','):
+
+    def serializer(value):
+        return delimiter.join([
+            str(elem)
+            for elem in value
+        ])
+
+    return serializer
+
+
+def from_bool(value):
+    return str(value)
+
+
+def to_bool(value):
+    if value:
+        return value.lower() == 'true'
+    else:
+        return False
+
+
+class EnvironmentVariable(property):
+    def __init__(
+        self,
+        serializer=None,
+        deserializer=None,
+        alternate_names=None,
+        default=None,
+        **kwargs
+    ):
+        super().__init__()
+        self.__name = None
+        self.serializer = serializer
+        self.deserializer = deserializer
+        self.default = default
+        self.alternate_names = alternate_names or []
+
+    def __set_name__(self, owner, name):
+        self.__name = name
+
+    def __get__(self, owner, klass):
+        for name in [self.__name] + self.alternate_names:
+            try:
+                value = environ[name]
+                break
+            except KeyError:
+                pass
+        else:
+            if callable(self.default):
+                value = self.default()
+            else:
+                value = self.default
+
+        if self.deserializer:
+            value = self.deserializer(value)
+
+        return value
+
+    def __set__(self, owner, value):
+        if self.serializer:
+            serialized_value = self.serializer(value)
+            environ[self.__name] = serialized_value
+        else:
+            environ[self.__name] = value
+
+
+class StoredEnv(EnvironmentVariable):
+    def __init__(self, readonly=False, **kwargs):
+
+        if readonly is not False:
+            kwargs['readonly'] = readonly
+
+        super().__init__(**kwargs)
+        self.__name = None
+        self.__readonly = readonly
+
+    def __set_name__(self, owner, name):
+        super().__set_name__(owner, name)
+        owner.__fields__.add(name)
+        self.__name = name
+
+    def __get__(self, owner, klass):
+        try:
+            return owner._values[self.__name]
+        except KeyError:
+            value = super().__get__(owner, klass)
+            owner._values[self.__name] = value
+            return value
+
+    def __set__(self, owner, value):
+        super().__set__(owner, value)
+        if not self.__readonly:
+            owner._values[self.__name] = value
+
+
+class StoredPathEnv(StoredEnv):
+    deserializer = path_list(',', set)
+    serializer = to_csv(',')
+
+    def __init__(self, **kwargs):
+        kwargs['serializer'] = StoredPathEnv.serializer
+        kwargs['deserializer'] = StoredPathEnv.deserializer
+        super().__init__(**kwargs)
+
+
+class StoredBoolEnv(StoredEnv):
+    deserializer = to_bool
+    serializer = from_bool
+
+    def __init__(self, **kwargs):
+        kwargs['serializer'] = StoredBoolEnv.serializer
+        kwargs['deserializer'] = StoredBoolEnv.deserializer
+        super().__init__(**kwargs)
 
 
 class EnvironmentVariables(object):
@@ -71,62 +205,69 @@ class EnvironmentVariables(object):
         ODOO_REQUIREMENTS_FILE: The path in which requirements get stored during
             installation of pip packages required by odoo addons.
 
-        USE_ODOO_LOGGER: Tell the app to initialize the odoo logger instead of
-            using the default one.
-
-        PACKAGE_MAP_FILE: File storing a map of {module_name: module_renamed} to
-            rename modules that shouldn't be used as is.
     """
-    def __init__(self):
-        self.ODOO_BASE_PATH = environ.get('ODOO_BASE_PATH')
-        self.ODOO_RC = environ.get('ODOO_RC')
-        self.ODOO_STRICT_MODE = environ.get('ODOO_STRICT_MODE')
-        self.ODOO_EXCLUDED_PATHS = from_csv(
-            environ.get('ODOO_EXCLUDED_PATHS', ''),
-            set
-        )
-        self.ODOO_EXTRA_PATHS = from_csv(
-            environ.get('ODOO_EXTRA_PATHS'),
-            set
-        )
-        self.ODOO_EXTRA_APT_PACKAGES = from_csv(
-            environ.get('ODOO_EXTRA_APT_PACKAGES') or
-            environ.get('EXTRA_APT_PACKAGES'),
-            set
-        )
-        self.ODOO_DISABLED_MODULES = from_csv(
-            environ.get('ODOO_DISABLED_MODULES'),
-            set
-        )
 
-        self.MASTER_PASSWORD = environ.get('MASTER_PASSWORD')
-        self.SHOW_MASTER_PASSWORD = environ.get('SHOW_MASTER_PASSWORD')
+    __fields__ = set()
 
-        self.SKIP_PIP = environ.get('SKIP_PIP')
-        self.SKIP_SUDO_ENTRYPOINT = environ.get('SKIP_SUDO_ENTRYPOINT')
-        self.SKIP_POSTGRES_WAIT = environ.get('SKIP_POSTGRES_WAIT')
-        self.I_KNOW_WHAT_IM_DOING = environ.get('I_KNOW_WHAT_IM_DOING')
+    # The base path where odoo is installed
+    ODOO_BASE_PATH = StoredEnv()
 
-        self.ALLOW_DANGEROUS_SETTINGS = environ.get(
+    ODOO_RC = StoredEnv()
+    ODOO_STRICT_MODE = StoredEnv()
+    ODOO_EXCLUDED_PATHS = StoredPathEnv()
+
+    ODOO_EXTRA_PATHS = StoredPathEnv()
+
+    ODOO_EXTRA_APT_PACKAGES = StoredPathEnv(
+        alternate_names=['EXTRA_APT_PACKAGES']
+    )
+
+    ODOO_DISABLED_MODULES = StoredPathEnv()
+
+    MASTER_PASSWORD = StoredEnv()
+    SHOW_MASTER_PASSWORD = StoredEnv()
+
+    SKIP_PIP = StoredBoolEnv(default=False)
+    SKIP_SUDO_ENTRYPOINT = StoredBoolEnv(default=False)
+    SKIP_POSTGRES_WAIT = StoredBoolEnv(default=False)
+
+    ALLOW_DANGEROUS_SETTINGS = StoredBoolEnv(
+        alternate_names=[
             'I_KNOW_WHAT_IM_DOING',
-            environ.get(
-                'ALLOW_DANGEROUS_SETTINGS',
-                ''
-            )
-        ).lower() == 'true'
+        ],
+        default=False
+    )
 
-        self.DEPLOYMENT_AREA = environ.get('DEPLOYMENT_AREA')
+    DEPLOYMENT_AREA = StoredEnv()
 
-        self.ODOO_VERSION = environ.get('ODOO_VERSION')
+    ODOO_VERSION = StoredEnv()
 
-        self.RESET_ACCESS_RIGHTS = environ.get('RESET_ACCESS_RIGHTS', '')
+    RESET_ACCESS_RIGHTS = StoredBoolEnv(default=False)
 
-        self.APT_INSTALL_RECOMMENDS = environ.get('APT_INSTALL_RECOMMENDS')
+    APT_INSTALL_RECOMMENDS = StoredBoolEnv(default=False)
 
-        self.ODOO_REQUIREMENTS_FILE = environ.get('ODOO_REQUIREMENTS_FILE')
+    ODOO_REQUIREMENTS_FILE = StoredEnv()
 
-        self.USE_ODOO_LOGGER = environ.get('USE_ODOO_LOGGER')
+    # Tell the app to initialize the odoo logger instead of using the default
+    # one.
+    USE_ODOO_LOGGER = StoredBoolEnv(default=False)
 
-        self.PACKAGE_MAP_FILE = environ.get('PACKAGE_MAP_FILE')
+    # File storing a map of {module_name: module_renamed} to rename modules
+    # that shouldn't be used as is.
+    PACKAGE_MAP_FILE = StoredEnv()
 
-        self.REQUIREMENTS_FILE_PATH = environ.get('REQUIREMENTS_FILE_PATH')
+    REQUIREMENTS_FILE_PATH = StoredEnv()
+
+    def __init__(self):
+        self._values = {}
+
+    @classmethod
+    def fields(cls):
+        for attr in cls.__fields__:
+            yield attr
+
+    def values(self):
+        return {
+            field: getattr(self, field)
+            for field in self.fields()
+        }
