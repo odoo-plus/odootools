@@ -32,34 +32,6 @@ SIGSEGV = signal.SIGSEGV.value
 quote = shlex.quote
 
 
-def flush_streams():
-    """
-    Simple utility that flushes streams.
-
-    When running in docker, it seems that it's required to manually flush
-    the buffers to make logging more fluent. Otherwise, the logger in docker
-    will not display anything until the buffers are filled enough. As logs
-    in this library are relatively small. It usually never fill the logs fast
-    enough.
-    """
-    # sys.stdout.flush()
-    # sys.stderr.flush()
-
-
-def log(message, *args, **kwargs):
-    """
-    Simple utility to log data to stdout.
-
-    It calls ``flush_streams`` after writing to stdout.
-
-    Parameters:
-        message (str): The message to log
-    """
-    # print(message, *args, **kwargs)
-    _logger.info(message, *args, **kwargs)
-    # flush_streams()
-
-
 def module_path(module, raise_not_found=True):
     """
     A function that returns the path in which the module is located.
@@ -104,7 +76,7 @@ def pipe(args):
     Returns:
         returncode (int): The returncode of the program
     """
-    log("Executing external command %s" % " ".join(args))
+    _logger.info("Executing external command %s" % " ".join(args))
 
     env = os.environ.copy()
     env['DEBIAN_FRONTEND'] = 'noninteractive'
@@ -119,14 +91,14 @@ def pipe(args):
 
     process.wait()
 
-    log(
+    _logger.info(
         (
             "External command execution completed with returncode(%s)"
         ) % process.returncode
     )
 
     if process.returncode == -SIGSEGV:
-        log("PIPE call segfaulted")
-        log("Failed to execute %s" % args)
+        _logger.info("PIPE call segfaulted")
+        _logger.info("Failed to execute %s" % args)
 
     return process.returncode

@@ -1,26 +1,110 @@
+"""
+Utils
+=====
+
+This module contain a collection of utilities. It needs to be refactored
+into submodules based on their purpose. The state of this module is a mix
+of legacy code that needs to be properly sorted or removed.
+"""
 import string
 import random
-from .compat import Path
 import configparser
+from pathlib import Path
 from configparser import _UNSET
 from .utilities.config import parse_value
 
-def from_csv(value, custom_type=None):
-    if not value:
-        return []
 
-    res = [
-        val.strip() for val in value.split(',')
-        if val.strip()
-    ]
+def to_csv(delimiter=','):
+    """
+    Convert a iterable of items into a csv of their string representation.
 
-    if custom_type:
-        res = custom_type(res)
+    Args:
+        delimiter (:obj:`str`): A string to be used as a value delimiter.
 
-    return res
+    Returns:
+        :obj:`Fn(Iter<Any>)`: A callable returning a csv value from an
+        iterable.
+    """
+
+    def serializer(value):
+        return delimiter.join([
+            str(elem)
+            for elem in value
+        ])
+
+    return serializer
+
+
+def from_bool(value):
+    """
+    Convert a bool into a string value.
+
+    Args:
+        value (:obj:`bool`): A boolean like value.
+
+    Returns:
+        :obj:`bool`: A text representation of a boolean value.
+    """
+    return str(bool(value))
+
+
+def to_bool(value):
+    """
+    Convert a string into a bool value.
+
+    The value will be true if its a text representation that is a
+    caseless version of 'true'.
+
+    Any other value will be False.
+
+    Args:
+        value (:obj:`str`): A text representation of a boolean. The value
+            must be true to be true. Any other value will be interpreted as
+            False.
+
+    Returns:
+        :obj:`bool`: A True or False representation of the text input.
+    """
+    if value:
+        return value.lower() == 'true'
+    else:
+        return False
+
+
+def obj_set(delimiter=',', container=list, item_type=str):
+    """
+    Convert a CSV value into a set of values.
+
+    Args:
+        delimiter (str): the delimiter of the CSV value.
+
+        container (callable): The type of the container of the set.
+            Defaults to :obj:`list`.
+
+        item_type (callable): The type of the value to be mapped to.
+            Defaults to :obj:`str`.
+
+    Returns:
+        container<item_type>: The mapped value of the csv.
+    """
+
+    def deserializer(value):
+        value = value or ''
+        items = value.split(delimiter)
+
+        value = [
+            item_type(item.strip())
+            for item in items
+            if item.strip()
+        ]
+
+        return container(value)
+
+    return deserializer
 
 
 def to_path_list(paths):
+
     return [
         Path(path)
         for path in paths
@@ -58,7 +142,13 @@ def convert_env_value(name, value):
 
 
 def random_string(stringLength=10):
-    """Generate a random string of fixed length """
+    """
+    Generate a random string of fixed length.
+
+    Args:
+        stringLength (int): The length of the string to be generated.
+            Defaults to 10.
+    """
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(stringLength))
 
@@ -68,6 +158,9 @@ class ConfigParser(configparser.RawConfigParser):
         super().__init__(*args, **kwargs)
 
     def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
+        """
+        Gets a value from a section.
+        """
         if (
             (
                 section not in self._sections or
