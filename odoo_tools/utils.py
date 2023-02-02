@@ -1,7 +1,15 @@
+"""
+Utils
+=====
+
+This module contain a collection of utilities. It needs to be refactored
+into submodules based on their purpose. The state of this module is a mix
+of legacy code that needs to be properly sorted or removed.
+"""
 import string
 import random
-from .compat import Path
 import configparser
+from pathlib import Path
 from configparser import _UNSET
 from .utilities.config import parse_value
 
@@ -108,7 +116,13 @@ def convert_env_value(name, value):
 
 
 def random_string(stringLength=10):
-    """Generate a random string of fixed length """
+    """
+    Generate a random string of fixed length.
+
+    Args:
+        stringLength (int): The length of the string to be generated.
+            Defaults to 10.
+    """
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(stringLength))
 
@@ -118,6 +132,9 @@ class ConfigParser(configparser.RawConfigParser):
         super().__init__(*args, **kwargs)
 
     def get(self, section, option, *, raw=False, vars=None, fallback=_UNSET):
+        """
+        Gets a value from a section.
+        """
         if (
             (
                 section not in self._sections or

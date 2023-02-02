@@ -10,11 +10,8 @@ Odoo Tools
 
    guides
    pages/commands
-   pages/api
    pages/environment_variables
-   pages/modules
-   pages/services
-   pages/compat
+   references
 
 
 Indices and tables
