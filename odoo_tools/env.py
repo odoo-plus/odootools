@@ -69,6 +69,8 @@ class EnvironmentVariable(property):
         for name in [self.__name] + self.alternate_names:
             try:
                 value = environ[name]
+                if self.deserializer:
+                    value = self.deserializer(value)
                 break
             except KeyError:
                 pass
@@ -77,9 +79,6 @@ class EnvironmentVariable(property):
                 value = self.default()
             else:
                 value = self.default
-
-        if self.deserializer:
-            value = self.deserializer(value)
 
         return value
 
@@ -213,7 +212,7 @@ class EnvironmentVariables(object):
     ODOO_BASE_PATH = StoredEnv()
 
     ODOO_RC = StoredEnv()
-    ODOO_STRICT_MODE = StoredEnv()
+    ODOO_STRICT_MODE = StoredBoolEnv(default=True)
     ODOO_EXCLUDED_PATHS = StoredPathEnv()
 
     ODOO_EXTRA_PATHS = StoredPathEnv()
