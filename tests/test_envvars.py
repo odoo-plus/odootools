@@ -48,5 +48,5 @@ def test_context_envvars(tmp_path):
         assert context.custom_paths == set(extra_paths)
         assert context.odoo_rc == tmp_path / 'ODOORC'
         assert context.excluded_paths == set(excluded_paths)
-        assert context.disabled_modules == {Path('disabled1'), Path('disabled2')}
+        assert context.disabled_modules == {'disabled1', 'disabled2'}
         assert context.strict_mode is True
