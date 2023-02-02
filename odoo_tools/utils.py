@@ -17,6 +17,13 @@ from .utilities.config import parse_value
 def to_csv(delimiter=','):
     """
     Convert a iterable of items into a csv of their string representation.
+
+    Args:
+        delimiter (:obj:`str`): A string to be used as a value delimiter.
+
+    Returns:
+        :obj:`Fn(Iter<Any>)`: A callable returning a csv value from an
+        iterable.
     """
 
     def serializer(value):
@@ -31,13 +38,32 @@ def to_csv(delimiter=','):
 def from_bool(value):
     """
     Convert a bool into a string value.
+
+    Args:
+        value (:obj:`bool`): A boolean like value.
+
+    Returns:
+        :obj:`bool`: A text representation of a boolean value.
     """
-    return str(value)
+    return str(bool(value))
 
 
 def to_bool(value):
     """
     Convert a string into a bool value.
+
+    The value will be true if its a text representation that is a
+    caseless version of 'true'.
+
+    Any other value will be False.
+
+    Args:
+        value (:obj:`str`): A text representation of a boolean. The value
+            must be true to be true. Any other value will be interpreted as
+            False.
+
+    Returns:
+        :obj:`bool`: A True or False representation of the text input.
     """
     if value:
         return value.lower() == 'true'
