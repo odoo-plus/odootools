@@ -5,22 +5,72 @@ import configparser
 from configparser import _UNSET
 from .utilities.config import parse_value
 
-def from_csv(value, custom_type=None):
-    if not value:
-        return []
 
-    res = [
-        val.strip() for val in value.split(',')
-        if val.strip()
-    ]
+def to_csv(delimiter=','):
+    """
+    Convert a iterable of items into a csv of their string representation.
+    """
 
-    if custom_type:
-        res = custom_type(res)
+    def serializer(value):
+        return delimiter.join([
+            str(elem)
+            for elem in value
+        ])
 
-    return res
+    return serializer
+
+
+def from_bool(value):
+    """
+    Convert a bool into a string value.
+    """
+    return str(value)
+
+
+def to_bool(value):
+    """
+    Convert a string into a bool value.
+    """
+    if value:
+        return value.lower() == 'true'
+    else:
+        return False
+
+
+def obj_set(delimiter=',', container=list, item_type=str):
+    """
+    Convert a CSV value into a set of values.
+
+    Args:
+        delimiter (str): the delimiter of the CSV value.
+
+        container (callable): The type of the container of the set.
+            Defaults to :obj:`list`.
+
+        item_type (callable): The type of the value to be mapped to.
+            Defaults to :obj:`str`.
+
+    Returns:
+        container<item_type>: The mapped value of the csv.
+    """
+
+    def deserializer(value):
+        value = value or ''
+        items = value.split(delimiter)
+
+        value = [
+            item_type(item.strip())
+            for item in items
+            if item.strip()
+        ]
+
+        return container(value)
+
+    return deserializer
 
 
 def to_path_list(paths):
+
     return [
         Path(path)
         for path in paths

@@ -4,64 +4,7 @@ Environment Variables
 """
 from os import environ
 from pathlib import Path
-
-
-def path_list(delimiter=',', container=list):
-
-    def deserializer(value):
-        from pathlib import Path
-
-        value = value or ''
-        elems = value.split(delimiter)
-
-        value = [
-            Path(path.strip())
-            for path in elems
-            if path.strip()
-        ]
-
-        return container(value)
-
-    return deserializer
-
-
-def obj_set(delimiter=',', container=list, item_type=str):
-
-    def deserializer(value):
-        value = value or ''
-        elems = value.split(delimiter)
-
-        value = [
-            item_type(path.strip())
-            for path in elems
-            if path.strip()
-        ]
-
-        return container(value)
-
-    return deserializer
-
-
-def to_csv(delimiter=','):
-
-    def serializer(value):
-        return delimiter.join([
-            str(elem)
-            for elem in value
-        ])
-
-    return serializer
-
-
-def from_bool(value):
-    return str(value)
-
-
-def to_bool(value):
-    if value:
-        return value.lower() == 'true'
-    else:
-        return False
+from .utils import obj_set, to_csv, from_bool, to_bool
 
 
 class EnvironmentVariable(property):
@@ -138,7 +81,6 @@ class StoredEnv(EnvironmentVariable):
 
 
 class StoredSetEnv(StoredEnv):
-    deserializer = path_list(',', set)
     serializer = to_csv(',')
 
     def __init__(self, item_type=None, **kwargs):
