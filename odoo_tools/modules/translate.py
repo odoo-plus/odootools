@@ -72,6 +72,8 @@ class PoFileReader(object):
                 return pot_path.exists() and str(pot_path) or False
             return False
 
+        pot_path = None
+
         # polib accepts a path or the file content as a string, not a fileobj
         if isinstance(source, str):
             self.pofile = polib.pofile(source)
@@ -88,6 +90,8 @@ class PoFileReader(object):
             # (Because the POT comments are correct on GitHub but the
             # PO comments tends to be outdated. See LP bug 933496.)
             self.pofile.merge(polib.pofile(pot_path))
+
+        self.options = options
 
     def __iter__(self):
         for entry in self.pofile:
