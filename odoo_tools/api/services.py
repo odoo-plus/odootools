@@ -32,7 +32,8 @@ class ServiceApi(object):
         service,
         target_path,
         fetch_path=None,
-        decrypt_key=None
+        decrypt_key=None,
+        credentials=None
     ):
         if not fetch_path:
             fetch_path = target_path
@@ -51,7 +52,8 @@ class ServiceApi(object):
             path, info = fetch_addons(
                 addon,
                 fetch_path,
-                decrypt_key=decrypt_key
+                decrypt_key=decrypt_key,
+                credentials=credentials,
             )
 
             if fetch_path != checkout_path:

@@ -69,6 +69,9 @@ def fetch_addons(addon, output_directory, decrypt_key=None, credentials=None):
         password = credential['password']
 
         url = urlparse(parsed.url2https)
+
+        _logger.debug("Fetching with url: %s", url.geturl())
+
         url = url._replace(
             netloc="{}:{}@{}".format(
                 username,

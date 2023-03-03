@@ -112,6 +112,9 @@ class List(Object):
 class Dict(List):
 
     def __init__(self, *args, **kwargs):
+        if 'default' not in kwargs:
+            kwargs['default'] = {}
+
         super().__init__(*args, **kwargs)
         self._key = kwargs['key']
 
