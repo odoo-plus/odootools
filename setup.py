@@ -1,7 +1,24 @@
 import setuptools
+from pathlib import Path
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+
+
+def find_in_path(module, path):
+    def find_files(cur_path):
+        files = []
+        for path in cur_path.iterdir():
+            if not path.is_dir():
+                files.append(str(path))
+            else:
+                files += find_files(path)
+        return files
+
+    module_path = Path.cwd() / module / path
+
+    return find_files(module_path)
+
 
 setuptools.setup(
     name="odoo-tools",
@@ -79,9 +96,10 @@ setuptools.setup(
         ]
     },
     package_data={
-        "odoo_tools": [
-            "requirements/*.txt",
-            "packages/*.toml",
-        ],
+        "odoo_tools": (
+            find_in_path('odoo_tools', 'requirements') +
+            find_in_path('odoo_tools', 'overlays') +
+            find_in_path('odoo_tools', 'packages')
+        )
     }
 )

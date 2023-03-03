@@ -108,7 +108,7 @@ def test_service_no_inheritance():
     manifest = ServiceManifests.parse(inheritance_services)
 
     assert len(manifest.services) == 4
-    assert manifest.services['prod'].addons is None
+    assert manifest.services['prod'].addons == {}
     assert len(manifest.services['prod2'].addons) == 0
     assert len(manifest.services['dev'].addons) == 2
     assert len(manifest.services['base'].addons) == 1
