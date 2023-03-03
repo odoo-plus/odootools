@@ -70,8 +70,6 @@ def fetch_addons(addon, output_directory, decrypt_key=None, credentials=None):
 
         url = urlparse(parsed.url2https)
 
-        _logger.debug("Fetching with url: %s", url.geturl())
-
         url = url._replace(
             netloc="{}:{}@{}".format(
                 username,
@@ -79,6 +77,8 @@ def fetch_addons(addon, output_directory, decrypt_key=None, credentials=None):
                 host
             )
         ).geturl()
+
+        _logger.debug("Fetching with url: %s", url)
     else:
         url = origin_url
 
