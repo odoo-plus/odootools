@@ -62,11 +62,22 @@ def show(ctx, service_file, env, url):
 @click.option(
     '--decrypt-key',
 )
+@click.option(
+    '--credentials'
+)
 @click.argument('service_file')
 @click.argument('environment')
 @click.argument('target')
 @click.pass_context
-def checkout(ctx, service_file, environment, target, cache, decrypt_key):
+def checkout(
+    ctx,
+    service_file,
+    environment,
+    target,
+    cache,
+    decrypt_key,
+    credentials,
+):
     env = ctx.obj['env']
 
     manifests = env.services.get_services(service_file)
@@ -74,11 +85,21 @@ def checkout(ctx, service_file, environment, target, cache, decrypt_key):
     service = manifests.services.get(environment)
     resolved_service = service.resolved
 
+    host, username, password = credentials.split(':')
+
+    credentials = {
+        host: {
+            "username": username,
+            "password": password,
+        }
+    }
+
     env.services.checkout(
         resolved_service,
         target,
         cache or target,
-        decrypt_key
+        decrypt_key,
+        credentials
     )
 
 
