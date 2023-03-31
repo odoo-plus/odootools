@@ -41,9 +41,13 @@ class BaseRequestDispatcher(object):
     def dispatch(self, request):
         from werkzeug.exceptions import HTTPException
         self.apply_params(request)
+        
+        args = {}
+        args.update(request.params)
+        args.update(request.args)
 
         try:
-            result = request.endpoint(**request.params)
+            result = request.endpoint(**args)
             result = self.handle_result(request, result)
         except HTTPException:
             raise
