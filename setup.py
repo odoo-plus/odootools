@@ -22,7 +22,7 @@ def find_in_path(module, path):
 
 setuptools.setup(
     name="odoo-tools",
-    version="0.1.8",
+    version="0.1.9",
     author="Loïc Faure-Lacroix <lamerstar@gmail.com>",
     author_email="lamerstar@gmail.com",
     description="Odoo Tools",
