@@ -197,13 +197,19 @@ def show_module(ctx, module):
 )
 @click.option(
     '--include-modules',
-    help="Remove logs and warnings.",
+    help="Include dependencies that aren't in the addons_paths.",
     is_flag=True,
     default=False
 )
 @click.option(
     '--quiet',
     help="Remove logs and warnings.",
+    is_flag=True,
+    default=False
+)
+@click.option(
+    '--exclude-modules',
+    help="Exclude queried modules from the found dependencies.",
     is_flag=True,
     default=False
 )
@@ -220,7 +226,8 @@ def show_dependencies(
     path,
     auto,
     quiet,
-    include_modules
+    include_modules,
+    exclude_modules,
 ):
     env = ctx.obj['env']
 
@@ -278,6 +285,9 @@ def show_dependencies(
     mods = [
         mod.path.name if only_name else str(mod)
         for mod in sorted_dependencies
+        if (
+            exclude_modules and mod.path.name not in check_modules
+        ) or not exclude_modules
     ]
 
     if csv:
