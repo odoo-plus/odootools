@@ -87,6 +87,21 @@ def test_env_config_addons_path(tmp_path):
     assert env.addons_paths() == set()
 
 
+def test_env_config_whitespace_addons_path(tmp_path):
+    env = Environment()
+
+    env.context.odoo_rc = tmp_path / 'odoo.cfg'
+
+    with env.config():
+        env.set_config('addons_path', ",".join([f" {tmp_path}", ""]))
+
+    paths = env.addons_paths()
+    assert paths == {tmp_path}
+
+    env.context.force_addons_lookup = True
+    assert env.addons_paths() == set()
+
+
 def test_invalid_env(tmp_path):
     env = Environment()
 

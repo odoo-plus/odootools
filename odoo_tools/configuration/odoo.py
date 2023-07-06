@@ -139,11 +139,15 @@ class OdooSource(object):
             self.parsed_version.major < 14
         ):
             new_args = args[:]
-            new_args += [
-                "setuptools<58"
-            ]
 
+            new_args += [
+                "setuptools >49, <=58",
+                "pip <23"
+            ]
             run(new_args)
+
+            print("Installing vatnumber alone!?")
+            run(args[:] + ["vatnumber==1.2"])
 
         args += ['.', '-r', str(self.requirement_file)]
 

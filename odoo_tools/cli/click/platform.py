@@ -13,7 +13,7 @@ def platform(ctx):
 @platform.command()
 @click.pass_context
 def arch(ctx):
-    arch = pp.processor()
+    arch = pp.processor() or pp.machine()
 
     if arch == "x86_64":
         docker_arch = "amd64"
