@@ -141,13 +141,10 @@ class OdooSource(object):
             new_args = args[:]
 
             new_args += [
-                "setuptools >49, <=58",
+                "setuptools <58",
                 "pip <23"
             ]
             run(new_args)
-
-            print("Installing vatnumber alone!?")
-            run(args[:] + ["vatnumber==1.2"])
 
         args += ['.', '-r', str(self.requirement_file)]
 

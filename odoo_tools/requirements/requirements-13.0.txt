@@ -1,4 +1,3 @@
-setuptools<=58
 Babel==2.6.0
 chardet==3.0.4
 decorator==4.3.0
