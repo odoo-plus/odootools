@@ -247,9 +247,9 @@ class Environment(object):
                 paths = config.get('options', 'addons_path')
 
             config_paths = set(
-                Path(path)
+                Path(path.strip())
                 for path in paths.split(',')
-                if path
+                if path.strip()
             )
 
             if len(config_paths) > 0 and not self.context.force_addons_lookup:

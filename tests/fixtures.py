@@ -92,7 +92,7 @@ def odoo_release():
 
     odoo_version = "{}.0".format(os.environ['TEST_ODOO'])
 
-    release = "20230222"
+    release = "20230601"
 
     env.manage.install_odoo(odoo_version, release=release, opts=options)
 
