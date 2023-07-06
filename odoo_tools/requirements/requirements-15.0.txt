@@ -11,7 +11,7 @@ greenlet>=0.4.10
 idna==2.8
 Jinja2==2.11.3 # min version = 2.10.1 (Focal - with security backports)
 libsass==0.18.0
-lxml==4.6.5 # min version = 4.5.0 (Focal - with security backports)
+lxml>=4.5.0 # min version = 4.5.0 (Focal - with security backports)
 MarkupSafe==1.1.0
 num2words==0.5.6
 ofxparse==0.19
@@ -28,7 +28,7 @@ PyPDF2==1.26,<2.0
 pypiwin32 ; sys_platform == 'win32'
 pyserial==3.4
 python-dateutil==2.7.3
-python-ldap==3.4.0 ; sys_platform != 'win32'  # min version = 3.2.0 (Focal with security backports)
+python-ldap>=3.4.0 ; sys_platform != 'win32'  # min version = 3.2.0 (Focal with security backports)
 python-stdnum==1.13
 pytz==2019.3
 pyusb==1.0.2

@@ -29,8 +29,9 @@ class DbRouter(BaseRouter):
 
         ir_http._handle_debug()
 
-        # TODO set in a better place?
-        request.lang = ir_http._get_default_lang()
+        # TODO set in a better place? should have http_routing loaded
+        # but not all db may have it loaded.
+        # request.lang = ir_http._get_default_lang()
 
         rule = ir_http._match(request.httprequest.path)
 

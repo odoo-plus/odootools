@@ -160,41 +160,9 @@ class __patch__:
     """
     Hidden block to prevent poluting the parent scope.
     """
-
-    def set_cookie(
-        self,
-        key,
-        value='',
-        max_age=None,
-        expires=None,
-        path='/',
-        domain=None,
-        secure=False,
-        httponly=False,
-        samesite=None
-    ):
-        # Lax is the new default for samesite, unfortunately
-        # when setting samesite=None, it simply ignores the
-        # value None instead of outputting the value as it is
-        # set.
-        # As a result werkzeug can only set it to:
-
-        # Lax explicit
-        # Strict explicit
-        # Lax implicit
-        if samesite is None:
-            samesite = 'Lax'
-
-        return super(Response, self).set_cookie(
-            key=key,
-            value=value,
-            max_age=max_age,
-            expires=expires,
-            path=path,
-            domain=domain,
-            secure=True,
-            httponly=httponly,
-            samesite=samesite
-        )
-
-    Response.set_cookie = set_cookie
+    # TODO make mixin Secure / Insecure
+    from odoo_tools.app.mixins.response import LaxCookieMixin, SecureCookieMixin
+    Response.__bases__ = (
+        LaxCookieMixin,
+        *Response.__bases__
+    )
